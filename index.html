@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal-Save</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #0f172a; color: white; padding: 50px 20px; }
+        .container { max-width: 500px; margin: auto; background: #1e293b; padding: 30px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        input { width: 90%; padding: 12px; margin: 15px 0; border-radius: 8px; border: none; outline: none; }
+        button { width: 95%; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #2563eb; }
+        #result { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Universal-Save</h1>
+        <p>লিঙ্ক পেস্ট করে ভিডিও ডাউনলোড করুন</p>
+        <input type="text" id="urlInput" placeholder="এখানে ভিডিও লিঙ্ক দিন...">
+        <button onclick="getDownload()">ডাউনলোড লিঙ্ক জেনারেট করুন</button>
+        <div id="result"></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
