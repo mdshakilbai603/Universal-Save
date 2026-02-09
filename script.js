@@ -1,23 +1,28 @@
-async function getDownload() {
-    const url = document.getElementById('urlInput').value;
-    const resDiv = document.getElementById('result');
-    if(!url) return alert("অনুগ্রহ করে একটি লিঙ্ক দিন!");
+async function startDownload() {
+    const url = document.getElementById('videoUrl').value;
+    const resCard = document.getElementById('resultCard');
+    if(!url) return alert("Please paste a link!");
 
-    resDiv.innerHTML = "প্রসেসিং... দয়া করে অপেক্ষা করুন।";
+    document.querySelector('button').innerText = "Processing...";
 
     try {
-        const response = await fetch('https://universal-save.onrender.com/api/download', {
+        const response = await fetch('/api/download', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: url })
         });
         const data = await response.json();
         if(data.success) {
-            resDiv.innerHTML = `<a href="${data.download_url}" target="_blank" style="display:block; padding:10px; background:#22c55e; color:white; border-radius:8px; text-decoration:none;">ভিডিওটি ডাউনলোড করুন</a>`;
+            resCard.style.display = "block";
+            document.getElementById('videoTitle').innerText = data.title;
+            document.getElementById('thumb').src = data.thumb;
+            document.getElementById('dlLink').href = data.url;
         } else {
-            resDiv.innerHTML = "দুঃখিত! এই ভিডিওটি সাপোর্ট করছে না।";
+            alert("Error: Video not found!");
         }
     } catch (e) {
-        resDiv.innerHTML = "সার্ভার এরর! আবার চেষ্টা করুন।";
+        alert("Server Busy!");
+    } finally {
+        document.querySelector('button').innerText = "Download";
     }
 }
