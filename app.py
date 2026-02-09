@@ -3,29 +3,31 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import yt_dlp
 
-# 'static_url_path' সেট করা হয়েছে যাতে সরাসরি ফাইল পাওয়া যায়
 app = Flask(__name__, static_url_path='', static_folder='.')
 CORS(app)
 
-# মেইন রুট - এটি সরাসরি তোমার index.html ফাইলকে দেখাবে
+# অ্যাডমিন পাসওয়ার্ড (তুমি চাইলে পরিবর্তন করতে পারো)
+ADMIN_PASSWORD = "shakil_admin"
+
 @app.route('/')
 def home():
     return send_from_directory('.', 'index.html')
 
-# ভিডিও ডাউনলোড করার API রুট
+@app.route('/admin')
+def admin_page():
+    return send_from_directory('.', 'admin.html')
+
 @app.route('/api/download', methods=['POST'])
 def download():
     data = request.json
     video_url = data.get('url')
-    if not video_url: 
-        return jsonify({"error": "লিঙ্ক দেওয়া হয়নি!"}), 400
+    if not video_url: return jsonify({"error": "No URL"}), 400
 
     ydl_opts = {
         'format': 'best',
         'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+        'referer': 'https://www.google.com/'
     }
 
     try:
@@ -34,8 +36,8 @@ def download():
             return jsonify({
                 "success": True,
                 "title": info.get('title'),
-                "download_url": info.get('url'),
-                "thumbnail": info.get('thumbnail')
+                "url": info.get('url'),
+                "thumb": info.get('thumbnail')
             })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
