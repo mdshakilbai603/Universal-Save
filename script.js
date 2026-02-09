@@ -6,7 +6,7 @@ async function getDownload() {
     resDiv.innerHTML = "প্রসেসিং... দয়া করে অপেক্ষা করুন।";
 
     try {
-        const response = await fetch('https://your-app.onrender.com/api/download', {
+        const response = await fetch('https://universal-save.onrender.com', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: url })
