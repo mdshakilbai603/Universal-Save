@@ -1,0 +1,11 @@
+<div class="container">
+    <h2 id="title"></h2>
+    <img id="thumb" src="" style="width:100%; border-radius:15px;">
+    <button onclick="window.location.href = '/download-page'" style="background:orange;">ডাউনলোড পেজে যান</button>
+</div>
+
+<script>
+    const data = JSON.parse(localStorage.getItem('vData'));
+    document.getElementById('title').innerText = data.title;
+    document.getElementById('thumb').src = data.thumb;
+</script>
