@@ -12,16 +12,21 @@ def preview(): return send_from_directory('.', 'preview.html')
 @app.route('/download-page')
 def download_page(): return send_from_directory('.', 'download.html')
 
-@app.route('/shakil-admin') # তোমার গোপন অ্যাডমিন লিঙ্ক
+@app.route('/shakil-admin') # সিক্রেট অ্যাডমিন পেজ
 def admin(): return send_from_directory('.', 'admin.html')
 
 @app.route('/api/fetch', methods=['POST'])
 def fetch_video():
     url = request.json.get('url')
     try:
-        with yt_dlp.YoutubeDL({'format': 'best'}) as ydl:
+        with yt_dlp.YoutubeDL({'format': 'best', 'quiet': True}) as ydl:
             info = ydl.extract_info(url, download=False)
-            return jsonify({"success": True, "title": info.get('title'), "url": info.get('url'), "thumb": info.get('thumbnail')})
+            return jsonify({
+                "success": True, 
+                "title": info.get('title'), 
+                "url": info.get('url'), 
+                "thumb": info.get('thumbnail')
+            })
     except: return jsonify({"success": False})
 
 if __name__ == "__main__":
