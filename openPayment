@@ -1,0 +1,16 @@
+function openPayment() {
+    const isInternational = confirm("Are you from Bangladesh? (হ্যাঁ হলে OK দিন, না হলে Cancel দিন)");
+    
+    if (isInternational) {
+        // বাংলাদেশের জন্য বিকাশ/হোয়াটসঅ্যাপ
+        const whatsappNumber = "88017XXXXXXXX"; // তোমার আসল নম্বর দাও
+        const msg = "আমি Universal-Save Premium কিনতে চাই।";
+        window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`, '_blank');
+    } else {
+        // বিদেশের জন্য (PayPal/BuyMeACoffee)
+        // শাকিল, বিদেশের পেমেন্টের জন্য তুমি আপাতত 'buymeacoffee.com' এ একটি অ্যাকাউন্ট খুলে তার লিঙ্ক এখানে দিতে পারো। 
+        // এটি ইন্টারন্যাশনাল কার্ড সাপোর্ট করে।
+        const globalPaymentLink = "https://www.buymeacoffee.com/yourusername"; 
+        window.open(globalPaymentLink, '_blank');
+    }
+}
