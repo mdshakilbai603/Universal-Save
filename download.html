@@ -1,27 +1,13 @@
-<!DOCTYPE html>
-<html lang="bn">
-<head>
-    <meta charset="UTF-8">
-    <title>Download Video</title>
-    <style>
-        :root { --bg: #0f172a; --card-bg: #1e293b; --text: #f8fafc; }
-        body { margin: 0; font-family: sans-serif; background: var(--bg); color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; }
-        .container { width: 90%; max-width: 500px; background: var(--card-bg); padding: 40px; border-radius: 20px; }
-        .dl-btn { display: block; padding: 20px; background: #22c55e; color: white; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 20px; box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>আপনার ভিডিও প্রস্তুত!</h1>
-        <p>নিচের বাটনে ক্লিক করে সরাসরি ডাউনলোড করুন</p>
-        <a id="finalBtn" href="" class="dl-btn" target="_blank">Download Now</a>
-        <br>
-        <button onclick="window.location.href='/'" style="background:none; color:gray; border:none; cursor:pointer;">আরেকটি ডাউনলোড করুন</button>
+<div class="glass-card">
+    <h2>Your Video is Ready!</h2>
+    <a id="link" href="" style="display:block; background:#22c55e; padding:20px; color:white; border-radius:15px; text-decoration:none; font-weight:bold; margin-bottom:20px;">DOWNLOAD NOW</a>
+    
+    <div style="background:#0f172a; padding:20px; border-radius:15px; border:1px dashed #a855f7;">
+        <h3>Premium PRO Upgrade</h3>
+        <p>Unlock 4K & No-Ads Experience</p>
+        <div style="background:#fff; color:#000; padding:10px; border-radius:10px; font-weight:bold; font-size:20px; margin:10px 0;">
+            Pay 99 BDT to: [তোমার নাম্বার এখানে দাও]
+        </div>
+        <p style="font-size:12px; color:gray;">Send Money & Inbox transaction ID on WhatsApp.</p>
     </div>
-
-    <script>
-        const data = JSON.parse(localStorage.getItem('vData'));
-        if(data) { document.getElementById('finalBtn').href = data.url; }
-    </script>
-</body>
-</html>
+</div>
