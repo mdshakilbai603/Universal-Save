@@ -1,0 +1,9 @@
+<div class="container">
+    <h1>আপনার ভিডিও তৈরি!</h1>
+    <a id="finalBtn" href="" target="_blank" style="background:green; padding:20px; color:white; text-decoration:none; display:block; border-radius:10px;">সরাসরি ডাউনলোড করুন</a>
+</div>
+
+<script>
+    const data = JSON.parse(localStorage.getItem('vData'));
+    document.getElementById('finalBtn').href = data.url;
+</script>
