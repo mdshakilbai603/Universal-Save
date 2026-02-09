@@ -2,49 +2,55 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal-Save Pro | Global Extraction</title>
+    <title>Universal-Save Pro | Global Video Solutions</title>
     <style>
-        body { margin: 0; font-family: 'Inter', -apple-system, sans-serif; background: #ffffff; color: #1d1d1f; }
-        .nav { padding: 25px 8%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f2f2f2; }
-        .logo { font-size: 22px; font-weight: 700; letter-spacing: -1px; }
-        .hero { height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0 20px; }
-        h1 { font-size: 56px; font-weight: 800; margin: 0; letter-spacing: -2px; }
-        p { font-size: 20px; color: #86868b; margin: 15px 0 40px 0; }
-        .search-box { width: 100%; max-width: 650px; display: flex; background: #f5f5f7; padding: 8px; border-radius: 18px; border: 1px solid #d2d2d7; }
-        input { flex: 1; border: none; background: none; padding: 15px 20px; font-size: 17px; outline: none; }
-        .btn { background: #0071e3; color: white; border: none; padding: 12px 30px; border-radius: 12px; font-weight: 600; cursor: pointer; transition: 0.3s; }
-        .btn:hover { background: #0077ed; transform: scale(1.02); }
-        .marketing { margin-top: 60px; display: flex; gap: 30px; }
-        .m-item { font-size: 14px; font-weight: 500; color: #424245; display: flex; align-items: center; gap: 8px; }
+        :root { --primary: #0066ff; --bg: #ffffff; --text: #1d1d1f; }
+        body { margin: 0; font-family: 'SF Pro Display', sans-serif; background: var(--bg); color: var(--text); }
+        .nav { padding: 20px 10%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f2f2f2; }
+        .hero { padding: 100px 20px; text-align: center; background: radial-gradient(circle at 50% 50%, #fbfbfb 0%, #ffffff 100%); }
+        .container { max-width: 700px; margin: auto; }
+        .input-box { background: #f5f5f7; border: 1px solid #d2d2d7; border-radius: 20px; display: flex; padding: 10px; margin-top: 40px; }
+        input { flex: 1; border: none; background: transparent; padding: 15px; font-size: 18px; outline: none; }
+        .btn-pro { background: var(--primary); color: white; border: none; padding: 15px 40px; border-radius: 14px; font-weight: 600; cursor: pointer; transition: 0.3s; }
+        .btn-pro:hover { transform: scale(1.05); }
+        .marketing-section { margin-top: 80px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; }
+        .feat-card { padding: 30px; background: #fafafa; border-radius: 20px; border: 1px solid #eeeeee; }
     </style>
 </head>
 <body>
     <div class="nav">
-        <div class="logo">UNIVERSAL-SAVE <span style="color:#0071e3">PRO</span></div>
-        <div style="display:flex; gap:20px; font-size:14px; color:#515154; cursor:pointer;">
-            <span>Enterprise</span> <span>Pricing</span> <span>API</span>
+        <div style="font-size: 24px; font-weight: 900;">U-SAVE <span style="color:var(--primary)">PRO</span></div>
+        <div style="display:flex; gap:25px;">
+            <select onchange="changeLang(this.value)" style="border:none; background:none; cursor:pointer;">
+                <option value="en">English</option>
+                <option value="bn">বাংলা</option>
+            </select>
+            <a href="/our-services" style="text-decoration:none; color:var(--primary); font-weight:bold;">Hire Shakil</a>
         </div>
     </div>
     <div class="hero">
-        <h1>Fast. Global. Simple.</h1>
-        <p>The premium way to extract videos from the web.</p>
-        <div class="search-box">
-            <input type="text" id="vUrl" placeholder="Paste link from YouTube, FB, Insta...">
-            <button class="btn" onclick="start()">Generate</button>
+        <div class="container">
+            <h1 style="font-size: 64px; letter-spacing: -2px; margin:0;">One Link. Any Video.</h1>
+            <p style="font-size: 24px; color:#86868b;">Professional grade extraction for creators and businesses.</p>
+            <div class="input-box">
+                <input type="text" id="vUrl" placeholder="Paste link here...">
+                <button class="btn-pro" onclick="fetchVideo()">Generate Now</button>
+            </div>
         </div>
-        <div class="marketing">
-            <div class="m-item">✓ No Ads</div> <div class="m-item">✓ 8K Ready</div> <div class="m-item">✓ Global CDN</div>
+        <div class="container marketing-section">
+            <div class="feat-card"><h3>Global CDN</h3><p>Fastest delivery across 50+ countries.</p></div>
+            <div class="feat-card"><h3>Secure API</h3><p>End-to-end encryption for every link.</p></div>
+            <div class="feat-card"><h3>8K Support</h3><p>Original quality preservation.</p></div>
         </div>
     </div>
     <script>
-        async function start() {
-            const btn = document.querySelector('.btn');
-            btn.innerText = "Extracting...";
+        async function fetchVideo() {
+            const btn = document.querySelector('.btn-pro');
+            btn.innerText = "Processing...";
             const res = await fetch('/api/fetch', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url: document.getElementById('vUrl').value})});
             const data = await res.json();
             if(data.success) { localStorage.setItem('vData', JSON.stringify(data)); window.location.href='/preview'; }
-            else { alert("Engine Busy. Try again."); btn.innerText = "Generate"; }
+            else { alert("Server Error"); btn.innerText = "Generate Now"; }
         }
     </script>
 </body>
