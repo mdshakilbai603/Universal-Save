@@ -3,11 +3,10 @@ import yt_dlp
 
 app = Flask(__name__, static_url_path='', static_folder='.')
 
-# ডাটাবেসের বদলে আমরা এই লিস্টটি ব্যবহার করবো যা তুমি অ্যাডমিন থেকে এডিট করতে পারবে
-DATABASE = {
+# ডাটা স্টোর (এখানে পণ্য এবং অর্ডার জমা থাকবে)
+db = {
     "products": [
-        {"id": 1, "name": "Computer Pro", "price": "45000", "img": "https://via.placeholder.com/150"},
-        {"id": 2, "name": "Premium Shirt", "price": "1200", "img": "https://via.placeholder.com/150"}
+        {"id": 1, "name": "Computer Pro", "price": "45000", "img": "https://via.placeholder.com/150"}
     ],
     "orders": []
 }
@@ -18,33 +17,41 @@ def home(): return send_from_directory('.', 'index.html')
 @app.route('/shakil-admin-pro')
 def admin(): return send_from_directory('.', 'admin.html')
 
-# পণ্য ডিলিট করার এপিআই
-@app.route('/api/delete-product/<int:id>', methods=['DELETE'])
-def delete_product(id):
-    DATABASE['products'] = [p for p in DATABASE['products'] if p['id'] != id]
-    return jsonify({"success": True})
+@app.route('/healthz')
+def health(): return "OK", 200
 
-# পণ্য যোগ করার এপিআই
+# পণ্য আপলোড এপিআই
 @app.route('/api/add-product', methods=['POST'])
-def add_product():
+def add_p():
     new_p = request.json
-    new_p['id'] = len(DATABASE['products']) + 1
-    DATABASE['products'].append(new_p)
+    new_p['id'] = len(db['products']) + 1
+    db['products'].append(new_p)
     return jsonify({"success": True})
 
-@app.route('/api/data')
-def get_data(): return jsonify(DATABASE)
+# পণ্য ডিলিট এপিআই
+@app.route('/api/delete-product/<int:p_id>', methods=['DELETE'])
+def delete_p(p_id):
+    db['products'] = [p for p in db['products'] if p['id'] != p_id]
+    return jsonify({"success": True})
 
-# ভিডিও জেনারেটর (যাতে বন্ধ না হয় সেজন্য try-except)
+# অর্ডার দেওয়ার এপিআই
+@app.route('/api/place-order', methods=['POST'])
+def place_order():
+    db['orders'].append(request.json)
+    return jsonify({"success": True})
+
+# সব ডাটা দেখার এপিআই (অ্যাডমিন ও ইউজার দুইজনের জন্যই)
+@app.route('/api/data')
+def get_data(): return jsonify(db)
+
 @app.route('/api/fetch', methods=['POST'])
-def fetch_video():
+def fetch_api():
     url = request.json.get('url')
     try:
-        with yt_dlp.YoutubeDL({'format': 'best', 'quiet': True, 'no_warnings': True}) as ydl:
+        with yt_dlp.YoutubeDL({'format': 'best', 'quiet': True}) as ydl:
             info = ydl.extract_info(url, download=False)
-            return jsonify({"success": True, "title": info['title'], "url": info['url'], "thumb": info['thumbnail']})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+            return jsonify({"success": True, "title": info.get('title'), "url": info.get('url'), "thumb": info.get('thumbnail')})
+    except: return jsonify({"success": False})
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000, debug=False) # Debug False দিলে সাইট স্টেবল থাকে
+    app.run(host='0.0.0.0', port=5000)
