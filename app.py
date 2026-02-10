@@ -4,43 +4,32 @@ import yt_dlp
 
 app = Flask(__name__, static_url_path='', static_folder='.')
 
-# মেমোরি ক্যাশ (স্পিড বাড়ানোর জন্য)
-video_cache = {}
+# স্পিড বাড়ানোর জন্য ক্যাশ
+cache = {}
 
+# প্রাথমিক পণ্য (যাতে রিস্টার্ট হলেও এগুলো না মুছে যায়)
 db = {
     "products": [
-        {"id": 1, "name": "Premium Laptop", "price": "55000", "img": "/uploads/laptop.jpg"}
-    ],
-    "orders": []
+        {"id": 1, "name": "Premium Smartphone", "price": "25000", "img": "https://via.placeholder.com/150"},
+        {"id": 2, "name": "8K Video Converter", "price": "1500", "img": "https://via.placeholder.com/150"}
+    ]
 }
 
 @app.route('/api/fetch', methods=['POST'])
-def fetch_video():
+def fetch_fast():
     url = request.json.get('url')
-    if not url:
-        return jsonify({"success": False, "error": "Empty URL"}), 400
-    
-    # ক্যাশ চেক (যদি আগে এই ভিডিও কেউ ডাউনলোড করে থাকে তবে ১ সেকেন্ডে আসবে)
-    if url in video_cache:
-        return jsonify(video_cache[url])
+    if not url: return jsonify({"success": False, "error": "No URL"}), 400
+
+    if url in cache: return jsonify(cache[url]) # ক্যাশ থেকে দ্রুত রিটার্ন
 
     try:
-        ydl_opts = {'format': 'best', 'quiet': True, 'no_warnings': True, 'extract_flat': True}
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL({'format': 'best', 'quiet': True}) as ydl:
             info = ydl.extract_info(url, download=False)
-            data = {
-                "success": True, 
-                "title": info.get('title'), 
-                "url": info.get('url'), 
-                "thumb": info.get('thumbnail')
-            }
-            video_cache[url] = data # ক্যাশে সেভ করা হলো
-            return jsonify(data)
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+            res = {"success": True, "title": info.get('title'), "url": info.get('url'), "thumb": info.get('thumbnail')}
+            cache[url] = res
+            return jsonify(res)
+    except:
+        return jsonify({"success": False}), 500
 
 @app.route('/api/data')
-def get_data():
-    return jsonify(db)
-
-# বাকি রুটগুলো আগের মতোই থাকবে...
+def get_data(): return jsonify(db)
