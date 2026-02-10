@@ -3,92 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal-Save Pro | Global Marketplace</title>
+    <title>Universal-Save Pro | Global Market</title>
     <style>
-        :root { --primary: #0070f3; --bg: #ffffff; --text: #000000; }
-        body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; text-align: center; }
-        .nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 5%; border-bottom: 1px solid #eee; }
-        .hero { padding: 80px 20px; }
-        .input-group { display: flex; max-width: 600px; margin: 30px auto; border: 2px solid var(--primary); border-radius: 50px; overflow: hidden; background: #fff; }
-        input { flex: 1; border: none; padding: 15px 25px; outline: none; font-size: 16px; }
-        .btn { background: var(--primary); color: white; border: none; padding: 0 30px; cursor: pointer; font-weight: bold; }
+        :root { --primary: #0070f3; --bg: #ffffff; }
+        body { margin: 0; font-family: -apple-system, sans-serif; background: var(--bg); color: #000; overflow-x: hidden; }
+        .nav { padding: 20px 8%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f2f2f2; }
+        .hero { padding: 100px 20px; text-align: center; }
+        .input-group { display: flex; max-width: 650px; margin: 40px auto; border: 2px solid var(--primary); border-radius: 50px; overflow: hidden; background: white; box-shadow: 0 10px 30px rgba(0,112,243,0.1); }
+        input { flex: 1; border: none; padding: 18px 25px; outline: none; font-size: 16px; }
+        .btn { background: var(--primary); color: white; border: none; padding: 0 40px; cursor: pointer; font-weight: bold; font-size: 16px; }
         
-        /* শপিং সেকশন ডিজাইন */
-        .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-top: 50px; padding: 20px; }
-        .product-card { border: 1px solid #efefef; padding: 20px; border-radius: 20px; transition: 0.3s; background: #fff; }
-        .product-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.05); }
-        .product-img { width: 100%; border-radius: 15px; height: 200px; object-fit: cover; }
-        
-        /* ভিডিও রেজাল্ট কার্ড */
-        #resultCard { display: none; max-width: 500px; margin: 20px auto; border: 1px solid #ddd; padding: 20px; border-radius: 20px; }
+        /* শপিং এরিয়া */
+        .market-title { font-size: 32px; font-weight: 800; text-align: center; margin-top: 50px; }
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; padding: 50px 8%; }
+        .p-card { border: 1px solid #eee; padding: 25px; border-radius: 25px; text-align: left; transition: 0.3s; }
+        .p-card:hover { transform: translateY(-10px); box-shadow: 0 30px 60px rgba(0,0,0,0.05); }
+        .p-img { width: 100%; height: 220px; background: #f5f5f7; border-radius: 15px; margin-bottom: 20px; object-fit: cover; }
     </style>
 </head>
 <body>
 
-    <div class="nav">
-        <div style="font-weight: 800; font-size: 22px;">U-SAVE <span style="color:var(--primary)">PRO</span></div>
-        <div id="google_translate_element"></div> </div>
+    <nav class="nav">
+        <div style="font-size: 24px; font-weight: 900;">U-SAVE <span style="color:var(--primary)">PRO</span></div>
+        <div id="google_translate_element"></div> </nav>
 
-    <div class="container">
-        <header class="hero">
-            <h1>Global Video Downloader</h1>
-            <p>Download content & Shop premium products globally.</p>
-            <div class="input-group">
-                <input type="text" id="videoUrl" placeholder="Paste link here...">
-                <button class="btn" onclick="startDownload()">Generate</button>
-            </div>
-        </header>
-
-        <div id="resultCard">
-            <img id="resThumb" src="" style="width:100%; border-radius:10px;">
-            <h3 id="resTitle"></h3>
-            <a id="resLink" href="#" style="display:block; background:#22c55e; color:white; padding:15px; border-radius:10px; text-decoration:none; font-weight:bold;" target="_blank">Download Now</a>
+    <section class="hero">
+        <h1 style="font-size: 56px; letter-spacing: -2px;">The World's Tool.</h1>
+        <p style="color: #666; font-size: 20px;">Download video assets & buy premium electronics globally.</p>
+        
+        <div class="input-group">
+            <input type="text" id="vUrl" placeholder="Paste link (YT, FB, Insta, TikTok)...">
+            <button class="btn" onclick="process()">Download</button>
         </div>
 
-        <h2 style="margin-top:100px;">Feature Marketing Products</h2>
-        <div class="shop-grid">
-            <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1517336712468-0776482cb068?w=400" class="product-img">
-                <h3>MacBook Air M2</h3>
-                <p>Elite performance for developers.</p>
-                <button class="btn" style="height:45px; border-radius:8px;" onclick="order('MacBook')">Order Now</button>
-            </div>
-            <div class="product-card">
-                <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400" class="product-img">
-                <h3>Smart Watch Pro</h3>
-                <p>Stay connected everywhere.</p>
-                <button class="btn" style="height:45px; border-radius:8px;" onclick="order('Watch')">Order Now</button>
-            </div>
+        <div id="result" style="display:none; max-width:500px; margin: 30px auto; padding:20px; border:1px solid #eee; border-radius:20px;">
+            <img id="thumb" src="" style="width:100%; border-radius:15px;">
+            <h3 id="vTitle"></h3>
+            <a id="dlLink" href="#" style="background:#22c55e; color:white; padding:15px; display:block; border-radius:10px; text-decoration:none; font-weight:bold;">Final Download</a>
         </div>
-    </div>
+    </section>
+
+    <div class="market-title">Global Marketplace</div>
+    <div class="product-grid" id="shop">
+        </div>
 
     <script>
-        async function startDownload() {
-            const url = document.getElementById('videoUrl').value;
-            if(!url) return alert("Please paste a link!");
-            
-            const res = await fetch('/api/fetch', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({url: url})
-            });
-            const data = await res.json();
-            if(data.success) {
-                document.getElementById('resTitle').innerText = data.title;
-                document.getElementById('resThumb').src = data.thumb;
-                document.getElementById('resLink').href = data.url;
-                document.getElementById('resultCard').style.display = 'block';
-            } else { alert("Error generating link!"); }
-        }
-
-        function order(item) {
-            alert(item + " অর্ডার করার জন্য আপনাকে ধন্যবাদ! শাকিল খুব শীঘ্রই আপনার সাথে যোগাযোগ করবে।");
-        }
-
+        // বিশ্বের সব ভাষা অটোমেটিক সেট করার জন্য
         function googleTranslateElementInit() {
             new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
         }
+
+        async function process() {
+            const btn = document.querySelector('.btn');
+            btn.innerText = "Working...";
+            const res = await fetch('/api/fetch', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url: document.getElementById('vUrl').value})});
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('vTitle').innerText = data.title;
+                document.getElementById('thumb').src = data.thumb;
+                document.getElementById('dlLink').href = data.url;
+                document.getElementById('result').style.display = 'block';
+            }
+            btn.innerText = "Download";
+        }
+
+        // প্রোডাক্ট লোড করা
+        fetch('/api/config').then(res => res.json()).then(data => {
+            const shop = document.getElementById('shop');
+            data.shop_items.forEach(item => {
+                shop.innerHTML += `
+                    <div class="p-card">
+                        <div class="p-img" style="background-image:url('${item.img}')"></div>
+                        <h3>${item.name}</h3>
+                        <p style="color:var(--primary); font-weight:bold; font-size:22px;">${item.price}</p>
+                        <button class="btn" style="width:100%; height:50px; border-radius:12px;" onclick="alert('Order placed for ${item.name}')">Order Now</button>
+                    </div>`;
+            });
+        });
     </script>
     <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
