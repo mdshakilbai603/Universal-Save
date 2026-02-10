@@ -1,15 +1,17 @@
-// ইউজার যখন অর্ডার বাটনে ক্লিক করবে
-async function placeOrder(productName) {
-    const phone = prompt(`${productName} কিনতে আপনার মোবাইল নম্বর দিন:`);
-    if (phone) {
-        const res = await fetch('/api/place-order', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ item: productName, phone: phone })
-        });
-        const result = await res.json();
-        if (result.success) {
-            alert("অর্ডার সফল! শাকিল আপনাকে ফোন করবে।");
-        }
+async function loadMarketing() {
+    const response = await fetch('/api/data');
+    const data = await response.json();
+    const marketGrid = document.getElementById('marketGrid'); // তোমার HTML আইডি অনুযায়ী
+    
+    if (data.products.length > 0) {
+        marketGrid.innerHTML = data.products.map(p => `
+            <div class="product-card">
+                <img src="${p.img}" alt="${p.name}" style="width:100%; border-radius:10px;">
+                <h4>${p.name}</h4>
+                <p>${p.price} BDT</p>
+                <button onclick="placeOrder('${p.name}')">Buy Now</button>
+            </div>
+        `).join('');
     }
 }
+window.onload = loadMarketing;
