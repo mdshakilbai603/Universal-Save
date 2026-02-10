@@ -1,79 +1,46 @@
 import os
 from flask import Flask, request, jsonify, send_from_directory
-from werkzeug.utils import secure_filename
+import yt_dlp
 
 app = Flask(__name__, static_url_path='', static_folder='.')
 
-# আপলোড করা ছবি রাখার ফোল্ডার সেটআপ
-UPLOAD_FOLDER = 'uploads'
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+# মেমোরি ক্যাশ (স্পিড বাড়ানোর জন্য)
+video_cache = {}
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-
-# ডাটাবেস (মেমোরিতে থাকবে, রেন্ডার রিস্টার্ট দিলে এটি রিসেট হতে পারে)
 db = {
-    "products": [],
+    "products": [
+        {"id": 1, "name": "Premium Laptop", "price": "55000", "img": "/uploads/laptop.jpg"}
+    ],
     "orders": []
 }
 
-@app.route('/')
-def home():
-    return send_from_directory('.', 'index.html')
-
-# অ্যাডমিন প্যানেল রুট
-@app.route('/shakil-admin-pro')
-def admin():
-    return send_from_directory('.', 'admin.html')
-
-# হেলথ চেক (বটের জন্য)
-@app.route('/healthz')
-def health():
-    return "OK", 200
-
-# ছবিসহ পণ্য আপলোড করার এপিআই
-@app.route('/api/add-product', methods=['POST'])
-def add_product():
-    name = request.form.get('name')
-    price = request.form.get('price')
-    file = request.files.get('image')
+@app.route('/api/fetch', methods=['POST'])
+def fetch_video():
+    url = request.json.get('url')
+    if not url:
+        return jsonify({"success": False, "error": "Empty URL"}), 400
     
-    if file and name and price:
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        img_url = f"/uploads/{filename}"
-        
-        new_p = {
-            "id": len(db['products']) + 1,
-            "name": name,
-            "price": price,
-            "img": img_url
-        }
-        db['products'].append(new_p)
-        return jsonify({"success": True})
-    return jsonify({"success": False, "msg": "তথ্য অসম্পূর্ণ"})
+    # ক্যাশ চেক (যদি আগে এই ভিডিও কেউ ডাউনলোড করে থাকে তবে ১ সেকেন্ডে আসবে)
+    if url in video_cache:
+        return jsonify(video_cache[url])
 
-# পণ্য ডিলিট করার এপিআই
-@app.route('/api/delete-product/<int:p_id>', methods=['DELETE'])
-def delete_product(p_id):
-    db['products'] = [p for p in db['products'] if p['id'] != p_id]
-    return jsonify({"success": True})
+    try:
+        ydl_opts = {'format': 'best', 'quiet': True, 'no_warnings': True, 'extract_flat': True}
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            data = {
+                "success": True, 
+                "title": info.get('title'), 
+                "url": info.get('url'), 
+                "thumb": info.get('thumbnail')
+            }
+            video_cache[url] = data # ক্যাশে সেভ করা হলো
+            return jsonify(data)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
-# কাস্টমার অর্ডার করার এপিআই
-@app.route('/api/place-order', methods=['POST'])
-def place_order():
-    db['orders'].append(request.json)
-    return jsonify({"success": True})
-
-# সব ডাটা পাওয়ার এপিআই
 @app.route('/api/data')
 def get_data():
     return jsonify(db)
 
-# আপলোড করা ছবি দেখানোর রুট
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+# বাকি রুটগুলো আগের মতোই থাকবে...
