@@ -3,17 +3,15 @@ import yt_dlp
 
 app = Flask(__name__, static_url_path='', static_folder='.')
 
+# অ্যাডমিন সেটিংস (এগুলো তুমি প্যানেল থেকে কন্ট্রোল করবে)
+config = {
+    "download_limit": 5,
+    "is_public": True,
+    "premium_price": "99 BDT"
+}
+
 @app.route('/')
 def home(): return send_from_directory('.', 'index.html')
-
-@app.route('/preview')
-def preview(): return send_from_directory('.', 'preview.html')
-
-@app.route('/download-page')
-def download_page(): return send_from_directory('.', 'download.html')
-
-@app.route('/shakil-admin') # সিক্রেট অ্যাডমিন পেজ
-def admin(): return send_from_directory('.', 'admin.html')
 
 @app.route('/api/fetch', methods=['POST'])
 def fetch_video():
