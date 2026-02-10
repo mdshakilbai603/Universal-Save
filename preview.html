@@ -1,26 +1,17 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { margin: 0; font-family: sans-serif; background: #fafafa; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .card { background: white; padding: 40px; border-radius: 30px; box-shadow: 0 15px 40px rgba(0,0,0,0.05); text-align: center; max-width: 500px; width: 90%; }
-        img { width: 100%; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        .pay-box { background: #f5f5f7; padding: 20px; border-radius: 20px; margin: 20px 0; border: 1px solid #e5e5e7; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2 id="t">Processing Video...</h2>
-        <img id="img" src="">
-        <button onclick="window.location.href='/download-page'" style="width:100%; padding:15px; background:black; color:white; border-radius:15px; border:none; font-weight:bold; cursor:pointer;">PROCEED TO DOWNLOAD</button>
-        <div class="pay-box">
-            <h4 style="margin:0;">Go Premium PRO</h4>
-            <p style="font-size:14px; color:gray;">Pay 99 BDT to: <b>[Your Number Here]</b></p>
-        </div>
+<div id="resultCard" style="display:none; max-width: 550px; margin: 40px auto; background: #fff; border-radius: 25px; border: 1px solid #f0f0f0; box-shadow: 0 20px 40px rgba(0,0,0,0.05); padding: 25px; transition: 0.5s;">
+    <div style="position: relative;">
+        <img id="videoThumb" src="" style="width: 100%; border-radius: 18px; display: block;">
+        <span style="position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6); color: white; padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: bold;">HD Quality</span>
     </div>
-    <script>
-        const d = JSON.parse(localStorage.getItem('vData'));
-        if(d) { document.getElementById('t').innerText = d.title; document.getElementById('img').src = d.thumb; }
-    </script>
-</body>
-</html>
+    
+    <h3 id="videoTitle" style="font-size: 18px; margin: 20px 0; color: #1d1d1f; line-height: 1.4;">Video Title Loading...</h3>
+    
+    <div style="display: flex; gap: 15px;">
+        <a id="downloadBtn" href="#" target="_blank" class="btn" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; background: #0070f3; height: 55px; border-radius: 14px; color: white; font-weight: bold; font-size: 16px;">
+            Download Now
+        </a>
+        <button onclick="openPayment()" style="flex: 1; background: #000; color: white; border: none; border-radius: 14px; font-weight: bold; cursor: pointer; font-size: 16px;">
+            Get Pro (No Ads)
+        </button>
+    </div>
+</div>
