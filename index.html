@@ -3,54 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal-Save Pro | Elite Video Extraction</title>
+    <title>Universal-Save Pro | Global Marketplace</title>
     <style>
-        :root { --accent: #0071e3; --text: #1d1d1f; --bg: #ffffff; }
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
-        .nav { padding: 30px 10%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f2f2f2; position: sticky; top: 0; background: rgba(255,255,255,0.8); backdrop-filter: saturate(180%) blur(20px); z-index: 100; }
-        .hero { padding: 120px 20px; text-align: center; }
-        h1 { font-size: 72px; font-weight: 800; letter-spacing: -3px; margin: 0; }
-        .search-area { max-width: 600px; margin: 50px auto; display: flex; background: #f5f5f7; border-radius: 20px; padding: 10px; border: 1px solid #d2d2d7; }
-        input { flex: 1; border: none; background: transparent; padding: 15px 20px; font-size: 18px; outline: none; color: #1d1d1f; }
-        .btn-main { background: var(--accent); color: white; border: none; padding: 15px 35px; border-radius: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; }
-        .btn-main:hover { transform: scale(1.02); background: #0077ed; }
-        .marketing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; max-width: 1000px; margin: 100px auto; padding: 0 20px; }
-        .m-card { padding: 40px; border-radius: 30px; background: #fbfbfb; border: 1px solid #f2f2f2; text-align: left; }
-        .m-card h3 { font-size: 24px; margin-top: 0; }
-        .lang-select { border: none; font-weight: 600; cursor: pointer; color: #86868b; outline: none; }
+        :root { --primary: #0070f3; --bg: #ffffff; --text: #000000; }
+        body { margin: 0; font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; text-align: center; }
+        .nav { display: flex; justify-content: space-between; align-items: center; padding: 20px 5%; border-bottom: 1px solid #eee; }
+        .hero { padding: 80px 20px; }
+        .input-group { display: flex; max-width: 600px; margin: 30px auto; border: 2px solid var(--primary); border-radius: 50px; overflow: hidden; background: #fff; }
+        input { flex: 1; border: none; padding: 15px 25px; outline: none; font-size: 16px; }
+        .btn { background: var(--primary); color: white; border: none; padding: 0 30px; cursor: pointer; font-weight: bold; }
+        
+        /* শপিং সেকশন ডিজাইন */
+        .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; margin-top: 50px; padding: 20px; }
+        .product-card { border: 1px solid #efefef; padding: 20px; border-radius: 20px; transition: 0.3s; background: #fff; }
+        .product-card:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0,0,0,0.05); }
+        .product-img { width: 100%; border-radius: 15px; height: 200px; object-fit: cover; }
+        
+        /* ভিডিও রেজাল্ট কার্ড */
+        #resultCard { display: none; max-width: 500px; margin: 20px auto; border: 1px solid #ddd; padding: 20px; border-radius: 20px; }
     </style>
 </head>
 <body>
+
     <div class="nav">
-        <div style="font-size: 24px; font-weight: 700;">U-SAVE <span style="color:var(--accent)">PRO</span></div>
-        <div style="display:flex; gap:30px; align-items:center;">
-            <select class="lang-select"><option>English</option><option>বাংলা</option></select>
-            <a href="/services" style="text-decoration:none; color:var(--accent); font-weight:600;">Services</a>
-            <a href="/shakil-admin-pro" style="color:#86868b; text-decoration:none; font-size:14px;">Admin</a>
+        <div style="font-weight: 800; font-size: 22px;">U-SAVE <span style="color:var(--primary)">PRO</span></div>
+        <div id="google_translate_element"></div> </div>
+
+    <div class="container">
+        <header class="hero">
+            <h1>Global Video Downloader</h1>
+            <p>Download content & Shop premium products globally.</p>
+            <div class="input-group">
+                <input type="text" id="videoUrl" placeholder="Paste link here...">
+                <button class="btn" onclick="startDownload()">Generate</button>
+            </div>
+        </header>
+
+        <div id="resultCard">
+            <img id="resThumb" src="" style="width:100%; border-radius:10px;">
+            <h3 id="resTitle"></h3>
+            <a id="resLink" href="#" style="display:block; background:#22c55e; color:white; padding:15px; border-radius:10px; text-decoration:none; font-weight:bold;" target="_blank">Download Now</a>
+        </div>
+
+        <h2 style="margin-top:100px;">Feature Marketing Products</h2>
+        <div class="shop-grid">
+            <div class="product-card">
+                <img src="https://images.unsplash.com/photo-1517336712468-0776482cb068?w=400" class="product-img">
+                <h3>MacBook Air M2</h3>
+                <p>Elite performance for developers.</p>
+                <button class="btn" style="height:45px; border-radius:8px;" onclick="order('MacBook')">Order Now</button>
+            </div>
+            <div class="product-card">
+                <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400" class="product-img">
+                <h3>Smart Watch Pro</h3>
+                <p>Stay connected everywhere.</p>
+                <button class="btn" style="height:45px; border-radius:8px;" onclick="order('Watch')">Order Now</button>
+            </div>
         </div>
     </div>
-    <div class="hero">
-        <h1>Pure. Power. Performance.</h1>
-        <p style="font-size: 24px; color:#86868b; margin-top:20px;">Download video content globally in original resolution.</p>
-        <div class="search-area">
-            <input type="text" id="vUrl" placeholder="Paste link from YT, FB, Insta, TikTok...">
-            <button class="btn-main" onclick="start()">Fetch</button>
-        </div>
-    </div>
-    <div class="marketing-grid">
-        <div class="m-card"><h3>Ultra 8K</h3><p>Extract videos in their highest possible original quality without compression.</p></div>
-        <div class="m-card"><h3>Global API</h3><p>Powered by the Human Algorithm for 99.9% success rate across all platforms.</p></div>
-        <div class="m-card"><h3>Ad-Free</h3><p>A clean, focused experience designed for professionals and creators.</p></div>
-    </div>
+
     <script>
-        async function start() {
-            const btn = document.querySelector('.btn-main');
-            btn.innerText = "Extracting...";
-            const res = await fetch('/api/fetch', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({url: document.getElementById('vUrl').value})});
+        async function startDownload() {
+            const url = document.getElementById('videoUrl').value;
+            if(!url) return alert("Please paste a link!");
+            
+            const res = await fetch('/api/fetch', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({url: url})
+            });
             const data = await res.json();
-            if(data.success) { localStorage.setItem('vData', JSON.stringify(data)); window.location.href='/preview'; }
-            else { alert("Engine Busy"); btn.innerText = "Fetch"; }
+            if(data.success) {
+                document.getElementById('resTitle').innerText = data.title;
+                document.getElementById('resThumb').src = data.thumb;
+                document.getElementById('resLink').href = data.url;
+                document.getElementById('resultCard').style.display = 'block';
+            } else { alert("Error generating link!"); }
+        }
+
+        function order(item) {
+            alert(item + " অর্ডার করার জন্য আপনাকে ধন্যবাদ! শাকিল খুব শীঘ্রই আপনার সাথে যোগাযোগ করবে।");
+        }
+
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
         }
     </script>
+    <script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
 </html>
