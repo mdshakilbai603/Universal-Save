@@ -1,45 +1,50 @@
 from flask import Flask, request, jsonify, send_from_directory
 import yt_dlp
-import datetime
 
 app = Flask(__name__, static_url_path='', static_folder='.')
 
-# অ্যাডমিন সেটিংস ডাটা (তুমি চাইলে ডাটাবেসে রাখতে পারো)
-ADMIN_DATA = {
-    "is_public": True,
-    "free_limit": 10,
-    "premium_price": 99,
-    "orders": [],
+# ডাটাবেসের বদলে আমরা এই লিস্টটি ব্যবহার করবো যা তুমি অ্যাডমিন থেকে এডিট করতে পারবে
+DATABASE = {
     "products": [
-        {"id": 1, "name": "Apple MacBook Pro", "price": "1,45,000 BDT", "img": "https://images.unsplash.com/photo-1517336712468-0776482cb068?w=400"},
-        {"id": 2, "name": "Premium Cotton Hoodie", "price": "1,250 BDT", "img": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400"}
-    ]
+        {"id": 1, "name": "Computer Pro", "price": "45000", "img": "https://via.placeholder.com/150"},
+        {"id": 2, "name": "Premium Shirt", "price": "1200", "img": "https://via.placeholder.com/150"}
+    ],
+    "orders": []
 }
 
 @app.route('/')
 def home(): return send_from_directory('.', 'index.html')
 
-@app.route('/shakil-admin-hub')
+@app.route('/shakil-admin-pro')
 def admin(): return send_from_directory('.', 'admin.html')
 
-@app.route('/api/config')
-def get_config(): return jsonify(ADMIN_DATA)
+# পণ্য ডিলিট করার এপিআই
+@app.route('/api/delete-product/<int:id>', methods=['DELETE'])
+def delete_product(id):
+    DATABASE['products'] = [p for p in DATABASE['products'] if p['id'] != id]
+    return jsonify({"success": True})
 
+# পণ্য যোগ করার এপিআই
+@app.route('/api/add-product', methods=['POST'])
+def add_product():
+    new_p = request.json
+    new_p['id'] = len(DATABASE['products']) + 1
+    DATABASE['products'].append(new_p)
+    return jsonify({"success": True})
+
+@app.route('/api/data')
+def get_data(): return jsonify(DATABASE)
+
+# ভিডিও জেনারেটর (যাতে বন্ধ না হয় সেজন্য try-except)
 @app.route('/api/fetch', methods=['POST'])
 def fetch_video():
     url = request.json.get('url')
     try:
-        with yt_dlp.YoutubeDL({'format': 'best', 'quiet': True}) as ydl:
+        with yt_dlp.YoutubeDL({'format': 'best', 'quiet': True, 'no_warnings': True}) as ydl:
             info = ydl.extract_info(url, download=False)
             return jsonify({"success": True, "title": info['title'], "url": info['url'], "thumb": info['thumbnail']})
-    except: return jsonify({"success": False})
-
-@app.route('/api/place-order', methods=['POST'])
-def order():
-    data = request.json
-    data['time'] = str(datetime.datetime.now())
-    ADMIN_DATA['orders'].append(data)
-    return jsonify({"success": True, "msg": "Order Placed!"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=False) # Debug False দিলে সাইট স্টেবল থাকে
