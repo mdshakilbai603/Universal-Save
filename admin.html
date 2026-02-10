@@ -2,88 +2,114 @@
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
-    <title>শাকিল - মাস্টার ড্যাশবোর্ড</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>শাকিল - মাস্টার অ্যাডমিন</title>
     <style>
-        body { font-family: sans-serif; background: #f8f9fa; padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
-        .section { margin-bottom: 40px; padding: 20px; border: 1px solid #eee; border-radius: 15px; }
-        input { padding: 10px; margin: 5px; border-radius: 5px; border: 1px solid #ddd; width: 200px; }
-        button { padding: 10px 20px; cursor: pointer; border-radius: 8px; border: none; font-weight: bold; }
-        .btn-add { background: #28a745; color: white; }
-        .btn-del { background: #dc3545; color: white; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        h2 { color: #0070f3; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        input[type="text"], input[type="number"], input[type="file"] { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn { background: #0070f3; color: white; border: none; padding: 15px 30px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn:hover { background: #0051b3; }
+        .btn-del { background: #ff4d4f; padding: 8px 15px; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { text-align: left; padding: 15px; border-bottom: 1px solid #eee; }
+        .prod-img { width: 50px; height: 50px; border-radius: 5px; object-fit: cover; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Shakil's Control Center</h1>
-        
-        <div class="section">
-            <h3>নতুন পণ্য আপলোড করুন</h3>
+        <h1>Shakil's Hub <small style="font-size: 14px; color: #888;">Control Everything</small></h1>
+
+        <div class="card">
+            <h2>🛒 নতুন পণ্য যোগ করুন</h2>
             <input type="text" id="pName" placeholder="পণ্যের নাম">
-            <input type="text" id="pPrice" placeholder="দাম (টাকা)">
-            <input type="text" id="pImg" placeholder="ছবির লিঙ্ক (URL)">
-            <button class="btn-add" onclick="addProduct()">পণ্য ছাড়ুন</button>
+            <input type="number" id="pPrice" placeholder="দাম (টাকা)">
+            <p>ছবি সিলেক্ট করুন:</p>
+            <input type="file" id="pImage" accept="image/*">
+            <button class="btn" onclick="uploadProduct()">সাইটে পাবলিশ করুন</button>
         </div>
 
-        <div class="section">
-            <h3>বর্তমান পণ্যসমূহ</h3>
-            <table id="pTable">
-                <thead><tr><th>নাম</th><th>দাম</th><th>অ্যাকশন</th></tr></thead>
+        <div class="card">
+            <h2>📦 বর্তমান স্টক</h2>
+            <table>
+                <thead>
+                    <tr><th>ছবি</th><th>নাম</th><th>দাম</th><th>অ্যাকশন</th></tr>
+                </thead>
                 <tbody id="pBody"></tbody>
             </table>
         </div>
 
-        <div class="section" style="background: #fff3cd;">
-            <h3>🛒 কাস্টমার অর্ডারসমূহ</h3>
-            <table id="oTable">
-                <thead><tr><th>পণ্য</th><th>কাস্টমার ফোন</th></tr></thead>
+        <div class="card" style="border-left: 5px solid #ffc107;">
+            <h2>🔔 নতুন অর্ডারসমূহ</h2>
+            <table>
+                <thead>
+                    <tr><th>পণ্যের নাম</th><th>কাস্টমার ফোন</th></tr>
+                </thead>
                 <tbody id="oBody"></tbody>
             </table>
         </div>
     </div>
 
     <script>
-        async function loadAllData() {
+        async function loadData() {
             const res = await fetch('/api/data');
             const data = await res.json();
             
-            // পণ্য লোড
+            // পণ্য তালিকা আপডেট
             const pBody = document.getElementById('pBody');
             pBody.innerHTML = data.products.map(p => `
-                <tr><td>${p.name}</td><td>${p.price} BDT</td>
-                <td><button class="btn-del" onclick="deleteProduct(${p.id})">ডিলিট</button></td></tr>
+                <tr>
+                    <td><img src="${p.img}" class="prod-img"></td>
+                    <td>${p.name}</td>
+                    <td>${p.price} BDT</td>
+                    <td><button class="btn btn-del" onclick="deleteProduct(${p.id})">ডিলিট</button></td>
+                </tr>
             `).join('');
 
-            // অর্ডার লোড
+            // অর্ডার তালিকা আপডেট
             const oBody = document.getElementById('oBody');
             oBody.innerHTML = data.orders.map(o => `
-                <tr><td><b>${o.item}</b></td><td>${o.phone}</td></tr>
+                <tr>
+                    <td><b>${o.item}</b></td>
+                    <td><a href="tel:${o.phone}">${o.phone}</a></td>
+                </tr>
             `).join('');
         }
 
-        async function addProduct() {
+        async function uploadProduct() {
             const name = document.getElementById('pName').value;
             const price = document.getElementById('pPrice').value;
-            const img = document.getElementById('pImg').value;
-            await fetch('/api/add-product', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({name, price, img})
-            });
-            alert("পণ্যটি সাইটে আপলোড হয়েছে!");
-            loadAllData();
+            const imageFile = document.getElementById('pImage').files[0];
+
+            if(!name || !price || !imageFile) {
+                alert("সবগুলো তথ্য দিন!");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('name', name);
+            formData.append('price', price);
+            formData.append('image', imageFile);
+
+            const res = await fetch('/api/add-product', { method: 'POST', body: formData });
+            const result = await res.json();
+            if(result.success) {
+                alert("সফলভাবে আপলোড হয়েছে!");
+                location.reload();
+            }
         }
 
         async function deleteProduct(id) {
-            if(confirm("ডিলিট করবেন?")) {
+            if(confirm("আপনি কি নিশ্চিত?")) {
                 await fetch(`/api/delete-product/${id}`, { method: 'DELETE' });
-                loadAllData();
+                loadData();
             }
         }
-        loadAllData();
-        setInterval(loadAllData, 5000); // প্রতি ৫ সেকেন্ড পর পর নতুন অর্ডার চেক করবে
+
+        loadData();
+        setInterval(loadData, 10000); // প্রতি ১০ সেকেন্ড পর পর নতুন ডাটা চেক করবে
     </script>
 </body>
 </html>
