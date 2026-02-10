@@ -1,54 +1,66 @@
 <!DOCTYPE html>
-<html>
+<html lang="bn">
 <head>
-    <title>Shakil's Private Admin</title>
+    <meta charset="UTF-8">
+    <title>শাকিল - মাস্টার ড্যাশবোর্ড</title>
     <style>
-        body { font-family: sans-serif; background: #f4f7f6; padding: 40px; }
-        .box { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
-        .del-btn { background: #ff4d4d; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; }
-        .add-form { margin-top: 30px; padding: 20px; background: #e3f2fd; border-radius: 15px; }
-        input { padding: 10px; margin: 5px; border-radius: 8px; border: 1px solid #ddd; }
+        body { font-family: sans-serif; background: #f8f9fa; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        .section { margin-bottom: 40px; padding: 20px; border: 1px solid #eee; border-radius: 15px; }
+        input { padding: 10px; margin: 5px; border-radius: 5px; border: 1px solid #ddd; width: 200px; }
+        button { padding: 10px 20px; cursor: pointer; border-radius: 8px; border: none; font-weight: bold; }
+        .btn-add { background: #28a745; color: white; }
+        .btn-del { background: #dc3545; color: white; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h1>Marketplace Management</h1>
-        <table>
-            <thead><tr><th>Product</th><th>Price</th><th>Action</th></tr></thead>
-            <tbody id="pList"></tbody>
-        </table>
+    <div class="container">
+        <h1>Shakil's Control Center</h1>
+        
+        <div class="section">
+            <h3>নতুন পণ্য আপলোড করুন</h3>
+            <input type="text" id="pName" placeholder="পণ্যের নাম">
+            <input type="text" id="pPrice" placeholder="দাম (টাকা)">
+            <input type="text" id="pImg" placeholder="ছবির লিঙ্ক (URL)">
+            <button class="btn-add" onclick="addProduct()">পণ্য ছাড়ুন</button>
+        </div>
 
-        <div class="add-form">
-            <h3>Add New Marketing Product</h3>
-            <input type="text" id="pName" placeholder="Product Name">
-            <input type="text" id="pPrice" placeholder="Price (BDT)">
-            <input type="text" id="pImg" placeholder="Image URL">
-            <button onclick="addProduct()" style="background:#0070f3; color:white; border:none; padding:10px 20px; border-radius:8px;">Add Product</button>
+        <div class="section">
+            <h3>বর্তমান পণ্যসমূহ</h3>
+            <table id="pTable">
+                <thead><tr><th>নাম</th><th>দাম</th><th>অ্যাকশন</th></tr></thead>
+                <tbody id="pBody"></tbody>
+            </table>
+        </div>
+
+        <div class="section" style="background: #fff3cd;">
+            <h3>🛒 কাস্টমার অর্ডারসমূহ</h3>
+            <table id="oTable">
+                <thead><tr><th>পণ্য</th><th>কাস্টমার ফোন</th></tr></thead>
+                <tbody id="oBody"></tbody>
+            </table>
         </div>
     </div>
 
     <script>
-        async function loadData() {
+        async function loadAllData() {
             const res = await fetch('/api/data');
             const data = await res.json();
-            const list = document.getElementById('pList');
-            list.innerHTML = "";
-            data.products.forEach(p => {
-                list.innerHTML += `<tr>
-                    <td>${p.name}</td>
-                    <td>${p.price} BDT</td>
-                    <td><button class="del-btn" onclick="deleteProduct(${p.id})">Delete</button></td>
-                </tr>`;
-            });
-        }
+            
+            // পণ্য লোড
+            const pBody = document.getElementById('pBody');
+            pBody.innerHTML = data.products.map(p => `
+                <tr><td>${p.name}</td><td>${p.price} BDT</td>
+                <td><button class="btn-del" onclick="deleteProduct(${p.id})">ডিলিট</button></td></tr>
+            `).join('');
 
-        async function deleteProduct(id) {
-            if(confirm("Are you sure?")) {
-                await fetch(`/api/delete-product/${id}`, { method: 'DELETE' });
-                loadData();
-            }
+            // অর্ডার লোড
+            const oBody = document.getElementById('oBody');
+            oBody.innerHTML = data.orders.map(o => `
+                <tr><td><b>${o.item}</b></td><td>${o.phone}</td></tr>
+            `).join('');
         }
 
         async function addProduct() {
@@ -60,9 +72,18 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({name, price, img})
             });
-            loadData();
+            alert("পণ্যটি সাইটে আপলোড হয়েছে!");
+            loadAllData();
         }
-        loadData();
+
+        async function deleteProduct(id) {
+            if(confirm("ডিলিট করবেন?")) {
+                await fetch(`/api/delete-product/${id}`, { method: 'DELETE' });
+                loadAllData();
+            }
+        }
+        loadAllData();
+        setInterval(loadAllData, 5000); // প্রতি ৫ সেকেন্ড পর পর নতুন অর্ডার চেক করবে
     </script>
 </body>
 </html>
