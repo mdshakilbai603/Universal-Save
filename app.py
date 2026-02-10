@@ -4,32 +4,39 @@ import yt_dlp
 
 app = Flask(__name__, static_url_path='', static_folder='.')
 
-# স্পিড বাড়ানোর জন্য ক্যাশ
-cache = {}
+# ১. বটকে জাগিয়ে রাখার জন্য এই রুটটি অবশ্যই লাগবে (Not Found দূর করবে)
+@app.route('/healthz')
+def health():
+    return "OK", 200
 
-# প্রাথমিক পণ্য (যাতে রিস্টার্ট হলেও এগুলো না মুছে যায়)
-db = {
-    "products": [
-        {"id": 1, "name": "Premium Smartphone", "price": "25000", "img": "https://via.placeholder.com/150"},
-        {"id": 2, "name": "8K Video Converter", "price": "1500", "img": "https://via.placeholder.com/150"}
-    ]
-}
+# ২. হোম পেজ রুট
+@app.route('/')
+def home():
+    return send_from_directory('.', 'index.html')
 
+# ৩. ভিডিও জেনারেটর এপিআই
 @app.route('/api/fetch', methods=['POST'])
-def fetch_fast():
+def fetch_video():
     url = request.json.get('url')
-    if not url: return jsonify({"success": False, "error": "No URL"}), 400
-
-    if url in cache: return jsonify(cache[url]) # ক্যাশ থেকে দ্রুত রিটার্ন
-
+    if not url or url.strip() == "":
+        return jsonify({"success": False, "error": "Invalid URL"}), 400
     try:
-        with yt_dlp.YoutubeDL({'format': 'best', 'quiet': True}) as ydl:
+        ydl_opts = {'format': 'best', 'quiet': True}
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            res = {"success": True, "title": info.get('title'), "url": info.get('url'), "thumb": info.get('thumbnail')}
-            cache[url] = res
-            return jsonify(res)
+            return jsonify({
+                "success": True,
+                "title": info.get('title'),
+                "url": info.get('url'),
+                "thumb": info.get('thumbnail')
+            })
     except:
-        return jsonify({"success": False}), 500
+        return jsonify({"success": False, "error": "Server Error"}), 500
 
-@app.route('/api/data')
-def get_data(): return jsonify(db)
+# ৪. অ্যাডমিন প্যানেল রুট
+@app.route('/shakil-admin-pro')
+def admin():
+    return send_from_directory('.', 'admin.html')
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=5000)
