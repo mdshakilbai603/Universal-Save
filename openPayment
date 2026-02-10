@@ -1,16 +1,13 @@
 function openPayment() {
-    const isInternational = confirm("Are you from Bangladesh? (হ্যাঁ হলে OK দিন, না হলে Cancel দিন)");
+    // একটি সুন্দর পেমেন্ট পপআপ বা রিডাইরেক্ট
+    const paymentChoice = confirm("To unlock Premium (No Ads + Unlimited 8K), Pay 99 BDT / $1. \n\nClick 'OK' to pay with Bkash/Rocket/Nagad.");
     
-    if (isInternational) {
-        // বাংলাদেশের জন্য বিকাশ/হোয়াটসঅ্যাপ
-        const whatsappNumber = "88017XXXXXXXX"; // তোমার আসল নম্বর দাও
-        const msg = "আমি Universal-Save Premium কিনতে চাই।";
-        window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`, '_blank');
-    } else {
-        // বিদেশের জন্য (PayPal/BuyMeACoffee)
-        // শাকিল, বিদেশের পেমেন্টের জন্য তুমি আপাতত 'buymeacoffee.com' এ একটি অ্যাকাউন্ট খুলে তার লিঙ্ক এখানে দিতে পারো। 
-        // এটি ইন্টারন্যাশনাল কার্ড সাপোর্ট করে।
-        const globalPaymentLink = "https://www.buymeacoffee.com/yourusername"; 
-        window.open(globalPaymentLink, '_blank');
+    if (paymentChoice) {
+        // এখানে তোমার আসল পেমেন্ট লিঙ্ক বা বিকাশ নাম্বার দিবে
+        const myNumber = "01XXXXXXXXX"; 
+        alert("Please Send Money to: " + myNumber + "\nReference: 'PRO'\n\nAfter payment, Shakil will verify and activate your account.");
+        
+        // যদি তোমার কোনো অটোমেটেড গেটওয়ে থাকে:
+        // window.location.href = "https://your-payment-gateway-link.com";
     }
 }
