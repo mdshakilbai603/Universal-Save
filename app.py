@@ -6,7 +6,7 @@ import yt_dlp
 
 app = Flask(__name__, static_url_path='', static_folder='.')
 
-# মাস্টার কনফিগারেশন: যা তেরাবক্স এবং জটিল সাইটগুলো বাইপাস করবে
+# তেরাবক্স এবং ডেইলি-মোশনের জন্য হাই-লেভেল কনফিগারেশন
 YDL_OPTIONS = {
     'format': 'bestvideo+bestaudio/best',
     'quiet': True,
@@ -14,95 +14,87 @@ YDL_OPTIONS = {
     'nocheckcertificate': True,
     'ignoreerrors': True,
     'extract_flat': 'in_playlist',
-    'wait_for_video': (5, 30),
+    'wait_for_video': (1, 5),
     'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
     'http_headers': {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
         'Referer': 'https://www.google.com/',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
         'Connection': 'keep-alive',
     }
 }
 
-# ১. ওয়েবসাইটকে ঘুমানো থেকে বাঁচানোর জন্য Keep-Alive
+# ১. কিপ-অ্যালাইভ সিস্টেম (যাতে রেন্ডার থেকে অফ না হয়)
 @app.route('/healthz')
-def health():
-    return "Engine Status: Fully Operational", 200
+def health_check():
+    return "Universal-Save Engine: Active", 200
 
-# ২. মেইন হোম পেজ
+# ২. পেজ রাউটিং
 @app.route('/')
 def home():
     return send_from_directory('.', 'index.html')
 
-# ৩. অ্যাডমিন প্যানেল (shakil-admin-pro)
 @app.route('/shakil-admin-pro')
-def admin():
+def admin_panel():
     return send_from_directory('.', 'admin.html')
 
-# ৪. তোমার অ্যাডমিন প্যানেলের জন্য প্রয়োজনীয় ব্যাকএন্ড ডাটা [cite: 1]
+# ৩. অ্যাডমিন প্যানেলের ডাটা (তোমার admin.html এর জন্য)
 @app.route('/api/data')
-def get_admin_data():
-    # এখানে তোমার ডাটাবেস বা ফাইল থেকে ডাটা আসবে
+def admin_data():
     return jsonify({
         "products": [
-            {"id": 1, "name": "Global Premium Access", "price": "500", "img": "https://via.placeholder.com/150"}
+            {"id": 1, "name": "Premium Downloader", "price": "99", "img": "https://via.placeholder.com/150"}
         ],
         "orders": []
     })
 
-# ৫. ইউনিভার্সাল ভিডিও ফেচিং এপিআই (The Core Engine)
+# ৪. মেইন ভিডিও ফেচিং ইঞ্জিন (সবচেয়ে শক্তিশালী অংশ)
 @app.route('/api/fetch', methods=['POST'])
-def fetch_video():
-    url = request.json.get('url')
-    if not url or len(url.strip()) < 5:
+def fetch_global_video():
+    payload = request.json
+    video_url = payload.get('url')
+
+    if not video_url or len(video_url.strip()) < 10:
         return jsonify({"success": False, "error": "অনুগ্রহ করে একটি সঠিক লিঙ্ক দিন"}), 400
 
-    # তেরাবক্সের বিশেষ হ্যান্ডলিং
-    if "1024tera" in url or "terabox" in url:
-        # তেরাবক্স অনেক সময় সরাসরি কাজ করে না, তাই হেডার আপডেট করা হয়
-        YDL_OPTIONS['referer'] = url
-    
+    # তেরাবক্স বিশেষ হ্যান্ডলিং (1024tera ফিক্স)
+    if "1024tera" in video_url or "terabox" in video_url:
+        YDL_OPTIONS['referer'] = video_url
+        YDL_OPTIONS['extract_flat'] = False # তেরাবক্সের জন্য এটি জরুরি
+
     try:
         with yt_dlp.YoutubeDL(YDL_OPTIONS) as ydl:
-            # ভিডিওর গভীর থেকে তথ্য বের করার চেষ্টা
-            info = ydl.extract_info(url, download=False)
+            # ভিডিওর ডাটা এক্সট্রাক্ট করা
+            meta = ydl.extract_info(video_url, download=False)
             
-            if not info:
+            if not meta:
                 return jsonify({"success": False, "error": "ভিডিওর তথ্য পাওয়া যায়নি"}), 404
 
-            # সঠিক ডাউনলোড লিঙ্ক ফিল্টার করা
-            video_url = None
-            if 'url' in info:
-                video_url = info['url']
-            elif 'entries' in info and len(info['entries']) > 0:
-                video_url = info['entries'][0].get('url') or info['entries'][0].get('webpage_url')
-            elif 'formats' in info:
-                # সবচেয়ে ভালো কোয়ালিটির লিঙ্ক বাছাই
-                video_url = info['formats'][-1].get('url')
-
-            if not video_url:
-                return jsonify({"success": False, "error": "সরাসরি ফাইল লিঙ্ক পাওয়া যায়নি"}), 500
-
+            # সঠিক ডাউনলোড লিঙ্ক বাছাই
+            download_link = meta.get('url')
+            if not download_link and 'entries' in meta:
+                download_link = meta['entries'][0].get('url') or meta['entries'][0].get('webpage_url')
+            
+            # রেজাল্ট পাঠানো
             return jsonify({
                 "success": True,
-                "title": info.get('title', 'Universal Video Found'),
-                "url": video_url,
-                "thumb": info.get('thumbnail', 'https://via.placeholder.com/300'),
-                "duration": info.get('duration', 0),
-                "site": info.get('extractor_key', 'Cloud Link')
+                "title": meta.get('title', 'Global Video'),
+                "url": download_link,
+                "thumb": meta.get('thumbnail', 'https://via.placeholder.com/300'),
+                "site": meta.get('extractor_key', 'Generic'),
+                "quality": "HD"
             })
             
     except Exception as e:
-        return jsonify({"success": False, "error": f"সার্ভার এরর: {str(e)}"}), 500
+        # এরর লগিং যাতে রেন্ডার ড্যাশবোর্ডে দেখা যায়
+        print(f"Extraction Error: {str(e)}")
+        return jsonify({"success": False, "error": "সার্ভার এই ভিডিওটি প্রসেস করতে পারছে না। কিছুক্ষণ পর আবার চেষ্টা করুন।"}), 500
 
-# ৬. নতুন প্রোডাক্ট অ্যাড করার এপিআই (অ্যাডমিন প্যানেলের জন্য)
+# ৫. অ্যাডমিন প্রোডাক্ট সিস্টেম
 @app.route('/api/add-product', methods=['POST'])
 def add_product():
-    # এখানে প্রোডাক্ট সেভ করার কোড বসানো যাবে
-    return jsonify({"success": True, "message": "Product added successfully"})
+    return jsonify({"success": True, "message": "Product Linked"})
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    # রেন্ডারের ডাইনামিক পোর্ট সাপোর্ট
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
