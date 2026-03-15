@@ -1,4 +1,8 @@
-flask
-yt-dlp
-gunicorn
-requests
+git+https://github.com/yt-dlp/yt-dlp.git@master
+Flask>=3.0.0
+gunicorn>=22.0.0
+requests>=2.31.0
+certifi>=2024.0.0
+brotli>=1.1.0
+websockets>=12.0
+python-dotenv>=1.0.0
