@@ -1,37 +1,27 @@
-FROM python:3.12-slim
+# ১. অফিশিয়াল লাইটওয়েট পাইথন ইমেজ ব্যবহার করা হচ্ছে
+FROM python:3.10-slim
 
-# সিস্টেম ডিপেন্ডেন্সি ইনস্টল (ffmpeg খুব জরুরি yt-dlp এর জন্য)
+# ২. yt-dlp এর জন্য সিস্টেমে ffmpeg এবং অন্যান্য প্রয়োজনীয় টুলস ইনস্টল করা
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# ৩. কন্টেইনারের ভেতরে ওয়ার্কিং ডিরেক্টরি সেট করা
 WORKDIR /app
 
-# প্রথমে requirements কপি করে ইনস্টল (লেয়ার ক্যাশিং এর জন্য)
+# ৪. ডিপেনডেন্সি ফাইল কপি এবং ইনস্টল করা
 COPY requirements.txt .
-
 RUN pip install --no-cache-dir -r requirements.txt
 
-# অ্যাপ্লিকেশন ফাইল কপি
+# ৫. প্রজেক্টের বাকি সব ফাইল কন্টেইনারে কপি করা
 COPY . .
 
-# নন-রুট ইউজার তৈরি (সিকিউরিটির জন্য)
-RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app
+# ৬. ইমেজ আপলোডের জন্য uploads ফোল্ডার এবং ডেটাবেজের জন্য database.json তৈরি করা
+RUN mkdir -px uploads && touch database.json && touch cookies.txt
 
-USER appuser
-
+# ৭. ফ্ল্যাস্ক অ্যাপ্লিকেশনের পোর্ট এক্সপোজ করা
 EXPOSE 5000
 
-# হেলথচেক
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:5000/healthz || exit 1
-
-# গুনিকর্ন দিয়ে রান (প্রোডাকশনের জন্য ভালো)
-CMD ["gunicorn", "--bind", "0.0.0.0:${PORT:-5000}", \
-     "--workers", "2", \
-     "--threads", "4", \
-     "--timeout", "120", \
-     "--access-logfile", "-", \
-     "app:app"]
+# ৮. অ্যাপ্লিকেশন রান করার কমান্ড
+CMD ["python", "app.py"]
