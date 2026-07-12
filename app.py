@@ -2,17 +2,18 @@ import os
 import json
 import logging
 import requests
-import re
-from flask import Flask, request, jsonify, render_template, Response
+from flask import Flask, request, jsonify, render_template, Response, redirect, url_for
 from flask_cors import CORS
 import yt_dlp
 
 app = Flask(__name__, template_folder='.')
+app.secret_key = os.environ.get('SECRET_KEY', 'universal_save_super_secret_key')
 CORS(app)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ওওথ টোকেন ক্যাশ ফাইল
 TOKEN_FILE = 'youtube_oauth_cache.json'
 
 @app.route('/')
@@ -23,6 +24,14 @@ def index():
 def get_data():
     return jsonify({"status": "active"})
 
+# গুগলের ভেরিফিকেশন সেকশনে নিয়ে যাওয়ার ডেডিকেটেড রুট
+@app.route('/auth/google')
+def google_auth_redirect():
+    # সরাসরি গুগলের ডিভাইস ভেরিফিকেশন অথবা ওওথ পেজে রিডাইরেক্ট করা
+    # এটি ব্যাকএন্ডে চালু হবে এবং ইউজারকে সরাসরি জিমেইলের সাইন-ইন স্ক্রিনে পাঠাবে
+    logger.info("Redirecting user to Google Verification Flow.")
+    return redirect("https://google.com/device")
+
 @app.route('/api/fetch', methods=['POST'])
 def fetch_video_data():
     data = request.get_json() or {}
@@ -31,7 +40,7 @@ def fetch_video_data():
     if not url_or_keyword:
         return jsonify({'error': 'লিংক বা কিউওয়ার্ড প্রদান করা হয়নি'}), 400
 
-    # ওঅথ (OAuth) মেকানিজম জোরপূর্বক রান করানোর জন্য কনফিগারেশন
+    # yt-dlp এর জন্য সঠিক ওওথ কনফিগারেশন
     ydl_opts = {
         'nocheckcertificate': True,
         'ignoreerrors': False,
@@ -40,7 +49,7 @@ def fetch_video_data():
         'format': 'best[ext=mp4]/best',
         'extractor_args': {
             'youtube': {
-                'player_client': ['tv'], # TV ক্লায়েন্ট ওঅথ কোড জেনারেশনকে বাধ্য করে
+                'player_client': ['ios', 'android'],
                 'oauth': True,
                 'oauth_cache': TOKEN_FILE 
             }
@@ -92,20 +101,15 @@ def fetch_video_data():
 
     except Exception as e:
         err_msg = str(e)
-        logger.error(f"Fetch Error Raw: {err_msg}")
+        logger.error(f"Fetch error trigger: {err_msg}")
         
-        # যদি ইউটিউব সাইন-ইন বা বট ভেরিফিকেশন চায় (সব ধরণের এরর ফিল্টার করা হচ্ছে)
-        if "confirm you're not a bot" in err_msg or "Sign in" in err_msg or "oauth" in err_msg.lower():
-            # রেগুলার এক্সপ্রেশন দিয়ে কোড খোঁজার চেষ্টা, যদি তাও ব্যর্থ হয় তবে ইউজারকে ডিরেক্ট ইনস্ট্রাকশন দেওয়া
-            code_match = re.search(r'enter the code\s+([A-Z0-9\-]+)', err_msg)
-            display_code = code_match.group(1) if code_match else "রেন্ডার লগে পাঠানো হয়েছে"
-            
+        # যদি ইউটিউব বট প্রটেকশন বা সাইন-ইন ডিটেক্ট করে
+        if "confirm you're not a bot" in err_msg or "Sign in" in err_msg:
+            # এরর মেসেজ না দেখিয়ে ফ্রন্টএন্ডকে নির্দেশ দেওয়া যাতে সে সরাসরি গুগল ভেরিফিকেশন লিংকে রিডাইরেক্ট করে দেয়
             return jsonify({
-                'error': 'গুগল ভেরিফিকেশন প্রয়োজন',
                 'oauth_needed': True,
-                'verification_url': 'https://google.com/device',
-                'user_code': display_code,
-                'message': 'ইউটিউব বট প্রোটেকশন বাইপাস করতে আপনার জিমেইল অ্যাকাউন্ট দিয়ে একবার ভেরিফাই করে নিন। নিচে দেওয়া লিংকে ক্লিক করে কোডটি বসান।'
+                'redirect_url': '/auth/google',
+                'message': 'গুগল ভেরিফিকেশন আবশ্যক। জিমেইল দিয়ে সাইন-ইন সেকশনে যাওয়া হচ্ছে...'
             }), 401
             
         return jsonify({'error': f"ব্যর্থ হয়েছে। কারণ: {err_msg}"}), 500
