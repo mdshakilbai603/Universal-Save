@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import requests
-from flask import Flask, request, jsonify, render_template, Response, redirect
+from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
 import yt_dlp
 
@@ -13,21 +13,8 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-TOKEN_FILE = 'youtube_oauth_cache.json'
-
-# গ্লোবাল ভ্যারিয়েবল যাতে কোড ও ইউআরএল সাময়িকভাবে জমা থাকে
-pending_oauth_data = {}
-
-def custom_oauth_hook(action, data):
-    """এটি yt-dlp এর ভেতর থেকে গুগলের কোড ও লিংক কেড়ে নিয়ে আমাদের দেবে"""
-    global pending_oauth_data
-    if action == 'pre_auth':
-        # গুগলের দেওয়া কোড এবং লিংক এখানে জমা হবে
-        pending_oauth_data = {
-            'code': data.get('user_code'), # এই সেই ৮ অক্ষরের কোড
-            'url': data.get('verification_url') # https://google.com/device
-        }
-        logger.info(f"====== OAUTH CODE GENERATED: {pending_oauth_data['code']} ======")
+# কুকিজ ফাইলের পাথ নির্ধারণ
+COOKIES_FILE = 'cookies.txt'
 
 @app.route('/')
 def index():
@@ -39,15 +26,11 @@ def get_data():
 
 @app.route('/api/fetch', methods=['POST'])
 def fetch_video_data():
-    global pending_oauth_data
     data = request.get_json() or {}
     url_or_keyword = data.get('url')
     
     if not url_or_keyword:
         return jsonify({'error': 'লিংক বা কিউওয়ার্ড প্রদান করা হয়নি'}), 400
-
-    # প্রতি রিকোয়েস্টে আগের ওওথ ডেটা ক্লিয়ার করে নেওয়া
-    pending_oauth_data = {}
 
     ydl_opts = {
         'nocheckcertificate': True,
@@ -55,20 +38,19 @@ def fetch_video_data():
         'no_warnings': False,
         'quiet': False,
         'format': 'best[ext=mp4]/best',
-        'extractor_args': {
-            'youtube': {
-                'player_client': ['ios', 'android'],
-                'oauth': True,
-                'oauth_cache': TOKEN_FILE
-            }
-        },
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
         }
     }
 
-    # yt-dlp তে আমাদের কাস্টম হুক যুক্ত করা
-    ydl_opts['extractor_args']['youtube']['oauth_hook'] = custom_oauth_hook
+    # যদি ডিরেক্টরিতে cookies.txt ফাইলটি থাকে, তবে সেটি yt-dlp তে যুক্ত হবে
+    if os.path.exists(COOKIES_FILE):
+        ydl_opts['cookiefile'] = COOKIES_FILE
+        logger.info("====== USING COOKIES.TXT FILE FOR AUTHENTICATION ======")
+    else:
+        logger.warning("====== COOKIES.TXT NOT FOUND! RUNNING WITHOUT COOKIES ======")
 
     if not url_or_keyword.startswith(('http://', 'https://')):
         url_or_keyword = f"ytsearch1:{url_or_keyword}"
@@ -112,16 +94,7 @@ def fetch_video_data():
 
     except Exception as e:
         err_msg = str(e)
-        logger.error(f"Fetch error trigger: {err_msg}")
-        
-        # যদি ব্যাকএন্ডে গুগলের কোড জেনারেট হয়ে গিয়ে থাকে
-        if pending_oauth_data and 'code' in pending_oauth_data:
-            return jsonify({
-                'oauth_needed': True,
-                'google_code': pending_oauth_data['code'], # ৮ অক্ষরের কোডটি ফ্রন্টএন্ডে পাঠানো হচ্ছে
-                'redirect_url': pending_oauth_data['url']  # গুগলের ডিভাইস ভেরিফিকেশন লিংক
-            }), 401
-            
+        logger.error(f"Fetch error: {err_msg}")
         return jsonify({'error': f"ব্যর্থ হয়েছে। কারণ: {err_msg}"}), 500
 
 @app.route('/api/proxy_video')
