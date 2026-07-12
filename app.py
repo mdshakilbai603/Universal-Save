@@ -12,7 +12,6 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# প্রয়োজনীয় ফোল্ডার ও ফাইল পাথ কন্টেনারের ভেতর /tmp ডিরেক্টরিতে রাখলে রেন্ডারে পারমিশন এরর দেয় না
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     try:
@@ -22,7 +21,6 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 DB_FILE = os.path.join(os.getcwd(), 'database.json')
 
-# ১. ডেটাবেজ ফাইল পড়ার নিরাপদ ফাংশন
 def read_db():
     if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
         return {}
@@ -32,7 +30,6 @@ def read_db():
     except Exception:
         return {}
 
-# ২. ডেটাবেজ ফাইলে লেখার নিরাপদ ফাংশন
 def write_db(data):
     try:
         with open(DB_FILE, 'w', encoding='utf-8') as f:
@@ -40,7 +37,6 @@ def write_db(data):
     except Exception as e:
         logger.error(f"Error writing to DB: {str(e)}")
 
-# ৩. প্রোগ্রেস হুক ফাংশন (কোনোভাবেই যেন ক্র্যাশ না করে)
 def my_hook(d):
     try:
         if d.get('status') == 'downloading':
@@ -58,7 +54,7 @@ def my_hook(d):
         elif d.get('status') == 'finished':
             logger.info('Done downloading, now post-processing...')
     except Exception as e:
-        logger.error(f"Hook error ignored to prevent crash: {e}")
+        logger.error(f"Hook error ignored: {e}")
 
 @app.route('/')
 def index():
@@ -76,25 +72,25 @@ def download_video():
     if not url:
         return jsonify({'error': 'URL প্রদান করা হয়নি'}), 400
 
-    # yt-dlp এর জন্য নিরাপদ কনফিগারেশন
+    # অতিরিক্ত উইন্ডোজ/লিনাক্স সামঞ্জস্যপূর্ণ এনকোডিং প্যারামিটার এবং স্ট্রিম ফিক্স সহ কনফিগ
     ydl_opts = {
         'format': 'best',
         'outtmpl': os.path.join(UPLOAD_FOLDER, '%(title)s.%(ext)s'),
         'progress_hooks': [my_hook],
         'nocheckcertificate': True,
-        'ignoreerrors': True,
+        'ignoreerrors': False,
         'no_warnings': True,
-        'quiet': False
+        'quiet': False,
+        'prefer_insecure': True
     }
 
-    # cookies.txt ফাইল থাকলে এবং সেটি খালি না হলেই শুধু ব্যবহার করবে
     cookie_path = os.path.join(os.getcwd(), 'cookies.txt')
     if os.path.exists(cookie_path) and os.path.getsize(cookie_path) > 0:
         ydl_opts['cookiefile'] = cookie_path
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # extract_info ডাউনলোডসহ রান করবে
+            # পাইপলাইন এক্সট্রাকশন সেফ করা
             info = ydl.extract_info(url, download=True)
             if not info:
                 return jsonify({'error': 'ভিডিওর তথ্য পাওয়া যায়নি বা লিংকটি সাপোর্ট করছে না'}), 400
@@ -102,7 +98,6 @@ def download_video():
             filename = ydl.prepare_filename(info)
             basename = os.path.basename(filename)
             
-            # ডেটাবেজে ডাটা সংরক্ষণ
             db = read_db()
             video_id = info.get('id', 'unknown')
             db[video_id] = {
@@ -120,7 +115,7 @@ def download_video():
             
     except Exception as e:
         logger.error(f"Download error: {str(e)}")
-        return jsonify({'error': f"ডাউনলোড প্রসেস করতে সমস্যা হয়েছে! দুঃখিত, সার্ভার রেসপন্স করছে না।"}), 500
+        return jsonify({'error': f"ডাউনলোড প্রসেস করতে সমস্যা হয়েছে! এরর ডিটেইলস: {str(e)}"}), 500
 
 @app.route('/uploads/<path:filename>')
 def download_file(filename):
