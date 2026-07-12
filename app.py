@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import requests
+import re
 from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
 import yt_dlp
@@ -12,7 +13,6 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ওঅথ টোকেন সেভ রাখার জন্য একটি ফাইলের পাথ নির্ধারণ
 TOKEN_FILE = 'youtube_oauth_cache.json'
 
 @app.route('/')
@@ -31,7 +31,7 @@ def fetch_video_data():
     if not url_or_keyword:
         return jsonify({'error': 'লিংক বা কিউওয়ার্ড প্রদান করা হয়নি'}), 400
 
-    # yt-dlp কনফিগারেশন যা জিমেইল/গুগল ওঅথ সেশন হ্যান্ডেল করবে
+    # ওঅথ (OAuth) মেকানিজম জোরপূর্বক রান করানোর জন্য কনফিগারেশন
     ydl_opts = {
         'nocheckcertificate': True,
         'ignoreerrors': False,
@@ -40,14 +40,13 @@ def fetch_video_data():
         'format': 'best[ext=mp4]/best',
         'extractor_args': {
             'youtube': {
-                'player_client': ['ios', 'android'],
+                'player_client': ['tv'], # TV ক্লায়েন্ট ওঅথ কোড জেনারেশনকে বাধ্য করে
                 'oauth': True,
-                # টোকেন ফাইলটি সার্ভারে ধরে রাখবে যেন বারবার সাইন-ইন না করতে হয়
                 'oauth_cache': TOKEN_FILE 
             }
         },
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         }
     }
 
@@ -91,20 +90,25 @@ def fetch_video_data():
                 'filename': video_data.get('title', 'video') + '.mp4'
             })
 
-    except yt_dlp.utils.ExtractorError as ee:
-        err_msg = str(ee)
-        # যদি ইউটিউব জিমেইল সাইন-ইন এর জন্য কোড পাঠায়, তবে তা ফ্রন্টএন্ডে পপআপ আকারে দেখাবে
-        if "https://google.com/device" in err_msg or "enter the code" in err_msg:
+    except Exception as e:
+        err_msg = str(e)
+        logger.error(f"Fetch Error Raw: {err_msg}")
+        
+        # যদি ইউটিউব সাইন-ইন বা বট ভেরিফিকেশন চায় (সব ধরণের এরর ফিল্টার করা হচ্ছে)
+        if "confirm you're not a bot" in err_msg or "Sign in" in err_msg or "oauth" in err_msg.lower():
+            # রেগুলার এক্সপ্রেশন দিয়ে কোড খোঁজার চেষ্টা, যদি তাও ব্যর্থ হয় তবে ইউজারকে ডিরেক্ট ইনস্ট্রাকশন দেওয়া
+            code_match = re.search(r'enter the code\s+([A-Z0-9\-]+)', err_msg)
+            display_code = code_match.group(1) if code_match else "রেন্ডার লগে পাঠানো হয়েছে"
+            
             return jsonify({
                 'error': 'গুগল ভেরিফিকেশন প্রয়োজন',
                 'oauth_needed': True,
-                'message': 'ইউটিউব বট প্রোটেকশন বাইপাস করতে আপনার জিমেইল ভেরিফাই করুন।',
-                'instruction': err_msg.replace('ERROR: [youtube]', '').strip()
+                'verification_url': 'https://google.com/device',
+                'user_code': display_code,
+                'message': 'ইউটিউব বট প্রোটেকশন বাইপাস করতে আপনার জিমেইল অ্যাকাউন্ট দিয়ে একবার ভেরিফাই করে নিন। নিচে দেওয়া লিংকে ক্লিক করে কোডটি বসান।'
             }), 401
-        return jsonify({'error': f"ইউটিউব এরর: {err_msg}"}), 500
-    except Exception as e:
-        logger.error(f"Fetch error: {str(e)}")
-        return jsonify({'error': f"ব্যর্থ হয়েছে। কারণ: {str(e)}"}), 500
+            
+        return jsonify({'error': f"ব্যর্থ হয়েছে। কারণ: {err_msg}"}), 500
 
 @app.route('/api/proxy_video')
 def proxy_video():
