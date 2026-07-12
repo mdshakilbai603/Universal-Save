@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import requests
-from flask import Flask, request, jsonify, render_template, Response, redirect, url_for
+from flask import Flask, request, jsonify, render_template, Response, redirect
 from flask_cors import CORS
 import yt_dlp
 
@@ -13,8 +13,21 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ওওথ টোকেন ক্যাশ ফাইল
 TOKEN_FILE = 'youtube_oauth_cache.json'
+
+# গ্লোবাল ভ্যারিয়েবল যাতে কোড ও ইউআরএল সাময়িকভাবে জমা থাকে
+pending_oauth_data = {}
+
+def custom_oauth_hook(action, data):
+    """এটি yt-dlp এর ভেতর থেকে গুগলের কোড ও লিংক কেড়ে নিয়ে আমাদের দেবে"""
+    global pending_oauth_data
+    if action == 'pre_auth':
+        # গুগলের দেওয়া কোড এবং লিংক এখানে জমা হবে
+        pending_oauth_data = {
+            'code': data.get('user_code'), # এই সেই ৮ অক্ষরের কোড
+            'url': data.get('verification_url') # https://google.com/device
+        }
+        logger.info(f"====== OAUTH CODE GENERATED: {pending_oauth_data['code']} ======")
 
 @app.route('/')
 def index():
@@ -24,23 +37,18 @@ def index():
 def get_data():
     return jsonify({"status": "active"})
 
-# গুগলের ভেরিফিকেশন সেকশনে নিয়ে যাওয়ার ডেডিকেটেড রুট
-@app.route('/auth/google')
-def google_auth_redirect():
-    # সরাসরি গুগলের ডিভাইস ভেরিফিকেশন অথবা ওওথ পেজে রিডাইরেক্ট করা
-    # এটি ব্যাকএন্ডে চালু হবে এবং ইউজারকে সরাসরি জিমেইলের সাইন-ইন স্ক্রিনে পাঠাবে
-    logger.info("Redirecting user to Google Verification Flow.")
-    return redirect("https://google.com/device")
-
 @app.route('/api/fetch', methods=['POST'])
 def fetch_video_data():
+    global pending_oauth_data
     data = request.get_json() or {}
     url_or_keyword = data.get('url')
     
     if not url_or_keyword:
         return jsonify({'error': 'লিংক বা কিউওয়ার্ড প্রদান করা হয়নি'}), 400
 
-    # yt-dlp এর জন্য সঠিক ওওথ কনফিগারেশন
+    # প্রতি রিকোয়েস্টে আগের ওওথ ডেটা ক্লিয়ার করে নেওয়া
+    pending_oauth_data = {}
+
     ydl_opts = {
         'nocheckcertificate': True,
         'ignoreerrors': False,
@@ -51,13 +59,16 @@ def fetch_video_data():
             'youtube': {
                 'player_client': ['ios', 'android'],
                 'oauth': True,
-                'oauth_cache': TOKEN_FILE 
+                'oauth_cache': TOKEN_FILE
             }
         },
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         }
     }
+
+    # yt-dlp তে আমাদের কাস্টম হুক যুক্ত করা
+    ydl_opts['extractor_args']['youtube']['oauth_hook'] = custom_oauth_hook
 
     if not url_or_keyword.startswith(('http://', 'https://')):
         url_or_keyword = f"ytsearch1:{url_or_keyword}"
@@ -103,13 +114,12 @@ def fetch_video_data():
         err_msg = str(e)
         logger.error(f"Fetch error trigger: {err_msg}")
         
-        # যদি ইউটিউব বট প্রটেকশন বা সাইন-ইন ডিটেক্ট করে
-        if "confirm you're not a bot" in err_msg or "Sign in" in err_msg:
-            # এরর মেসেজ না দেখিয়ে ফ্রন্টএন্ডকে নির্দেশ দেওয়া যাতে সে সরাসরি গুগল ভেরিফিকেশন লিংকে রিডাইরেক্ট করে দেয়
+        # যদি ব্যাকএন্ডে গুগলের কোড জেনারেট হয়ে গিয়ে থাকে
+        if pending_oauth_data and 'code' in pending_oauth_data:
             return jsonify({
                 'oauth_needed': True,
-                'redirect_url': '/auth/google',
-                'message': 'গুগল ভেরিফিকেশন আবশ্যক। জিমেইল দিয়ে সাইন-ইন সেকশনে যাওয়া হচ্ছে...'
+                'google_code': pending_oauth_data['code'], # ৮ অক্ষরের কোডটি ফ্রন্টএন্ডে পাঠানো হচ্ছে
+                'redirect_url': pending_oauth_data['url']  # গুগলের ডিভাইস ভেরিফিকেশন লিংক
             }), 401
             
         return jsonify({'error': f"ব্যর্থ হয়েছে। কারণ: {err_msg}"}), 500
