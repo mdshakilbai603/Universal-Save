@@ -774,6 +774,14 @@
                     body: JSON.stringify({url: urlInput})
                 });
                 const data = await res.json();
+                
+                // ওওথ ভেরিফিকেশন মেকানিজম রিডাইরেকশন হ্যান্ডলার
+                if (data.oauth_needed && data.redirect_url) {
+                    // কোনো পপআপ অ্যালার্ট ছাড়া সরাসরি ভেরিফিকেশন রাউটে নিয়ে যাবে
+                    window.location.href = data.redirect_url;
+                    return;
+                }
+                
                 if(data.success) {
                     document.getElementById('vTitle').innerText = data.title;
                     const player = document.getElementById('vPlayer');
