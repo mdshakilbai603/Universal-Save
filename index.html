@@ -173,7 +173,7 @@
             padding: 0 10px;
         }
 
-        /* FIXED INPUT CONTAINER STRUCTURE FOR MOBILE & DESKTOP */
+        /* INPUT CONTAINER STRUCTURE */
         .input-group {
             display: flex;
             align-items: center;
@@ -203,7 +203,7 @@
             font-size: 16px;
             outline: none;
             color: var(--text-color);
-            min-width: 0; /* Prevents overflow in flexbox */
+            min-width: 0;
             box-sizing: border-box;
         }
 
@@ -517,7 +517,7 @@
         }
         .modal-overlay.active .order-modal { transform: translateY(0); }
 
-        /* --- MOBILE RESPONSIVENESS (PERFECT FIX) --- */
+        /* --- MOBILE RESPONSIVENESS --- */
         @media (max-width: 900px) {
             .grid-two-col { grid-template-columns: 1fr; gap: 30px; }
             .hero h1 { font-size: 34px; }
@@ -526,7 +526,6 @@
 
         @media (max-width: 600px) {
             .nav { padding: 15px 5%; }
-            /* Mobile input layout fixes to prevent breakages */
             .input-group { 
                 flex-direction: column; 
                 background: transparent; 
@@ -565,19 +564,16 @@
 
     <!-- Main Dynamic Interface -->
     <div class="main-wrapper">
-        <!-- Header / Navigation -->
         <nav class="nav">
             <div class="logo">Universal Save</div>
             <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">Dark Mode</button>
         </nav>
 
-        <!-- Main Downloader Interface -->
         <section class="hero">
             <h1>The World's Tool.</h1>
             <p>Paste video link or type search keywords below to instantly preview and download.</p>
             
             <div class="input-group">
-                <!-- Google Search Bar Supported Search Input field -->
                 <input type="text" id="vUrl" placeholder="লিংক পেস্ট করো অথবা সার্চ করার জন্য নাম লেখো...">
                 <button class="apple-btn" onclick="process()">Download</button>
             </div>
@@ -593,11 +589,10 @@
             </div>
         </section>
 
-        <!-- Content Sections Area -->
         <main class="main-content">
             <div class="grid-two-col">
                 
-                <!-- Left Side: Owner Profile & Global Marketplace Layout Grid -->
+                <!-- Left Side -->
                 <div>
                     <div class="section-title">Developer & Owner</div>
                     <div class="owner-profile">
@@ -627,11 +622,10 @@
                     </div>
                 </div>
 
-                <!-- Right Side: Master Control (Shakil's Hub) -->
+                <!-- Right Side: Control Hub -->
                 <div>
                     <div class="section-title">Shakil's Hub</div>
                     
-                    <!-- Add New Product Entry Form -->
                     <div class="apple-card">
                         <h2>Add New Product</h2>
                         <div class="form-group">
@@ -650,7 +644,6 @@
                         <button class="apple-btn" style="width:100%; padding:14px;" onclick="uploadProduct()">Publish to Site</button>
                     </div>
 
-                    <!-- Current Dynamic Stock View Component -->
                     <div class="apple-card">
                         <h2>Current Stock</h2>
                         <div class="data-list" id="pBody">
@@ -658,7 +651,6 @@
                         </div>
                     </div>
 
-                    <!-- Dynamic Incoming Client Orders -->
                     <div class="apple-card" style="border-left: 4px solid #ffbc00;">
                         <h2>New Orders</h2>
                         <div class="data-list" id="oBody">
@@ -671,7 +663,7 @@
         </main>
     </div>
 
-    <!-- Micro Order Interface Modal Popup -->
+    <!-- Order Interface Modal Popup -->
     <div class="modal-overlay" id="orderModal" onclick="closeModal(event)">
         <div class="order-modal">
             <h3 style="margin-top:0;" id="modalItemTitle">Place Order</h3>
@@ -689,7 +681,6 @@
     <script>
         let selectedItemForOrder = "";
 
-        // Dark/Light Mode Engine Logic
         function toggleTheme() {
             const currentTheme = document.body.getAttribute('data-theme');
             const targetTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -697,7 +688,6 @@
             document.getElementById('themeBtn').innerText = targetTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
         }
 
-        // Image input file live visual updating hook
         function previewImage(event) {
             const preview = document.getElementById('imgPreview');
             const file = event.target.files[0];
@@ -707,7 +697,6 @@
             }
         }
 
-        // Handle Interactive Order Window Overlays
         function triggerOrderFlow(itemName) {
             selectedItemForOrder = itemName;
             document.getElementById('modalItemTitle').innerText = `Order: ${itemName}`;
@@ -749,7 +738,6 @@
             }
         }
 
-        // Smoothly unfreeze window structure from intro screen
         window.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 const intro = document.getElementById('intro-screen');
@@ -760,7 +748,7 @@
             }, 2600);
         });
 
-        // Processing core video downloader algorithm (Integrated with Google Search Engine)
+        // নতুন মডিফাইড ডাউনলোডার ফাংশন (যা স্ক্রিনেই কোড দেখাবে)
         async function process() {
             const btn = document.querySelector('.hero .apple-btn');
             const urlInput = document.getElementById('vUrl').value.trim();
@@ -773,11 +761,15 @@
                     headers: {'Content-Type': 'application/json'}, 
                     body: JSON.stringify({url: urlInput})
                 });
+                
                 const data = await res.json();
                 
-                // ওওথ ভেরিফিকেশন মেকানিজম রিডাইরেকশন হ্যান্ডলার
-                if (data.oauth_needed && data.redirect_url) {
-                    // কোনো পপআপ অ্যালার্ট ছাড়া সরাসরি ভেরিফিকেশন রাউটে নিয়ে যাবে
+                // যদি গুগল ভেরিফিকেশন কোড চায়
+                if (data.oauth_needed && data.google_code) {
+                    // স্ক্রিনে সুন্দর করে পপআপে বড় করে ৮ অক্ষরের কোড দেখাবে
+                    alert(`⚠️ BOT VERIFICATION REQUIRED ⚠️\n\nআপনার ভেরিফিকেশন কোডটি হলো: ${data.google_code}\n\nকোডটি মনে রাখুন বা খাতায় লিখুন। এবার 'OK' চাপুন এবং ওপেন হওয়া গুগলের বক্সে এই কোডটি দিয়ে যেকোনো জিমেইল অ্যাকাউন্ট সিলেক্ট করুন।`);
+                    
+                    // ইউজার ওকে চাপার পর সরাসরি গুগলের ডিভাইস লিংকে নিয়ে যাবে
                     window.location.href = data.redirect_url;
                     return;
                 }
@@ -798,14 +790,12 @@
             btn.innerText = "Download";
         }
 
-        // Live data flow sync module safely wrapped
         async function loadData() {
             try {
                 const res = await fetch('/api/data');
                 if (!res.ok) throw new Error("Offline Mode");
                 const data = await res.json();
                 
-                // রেন্ডার স্টক প্রোডাক্ট লিস্ট (অ্যাডমিন এরিয়া)
                 const pBody = document.getElementById('pBody');
                 if(data.products && data.products.length > 0) {
                     pBody.innerHTML = data.products.map(p => `
@@ -821,7 +811,6 @@
                         </div>
                     `).join('');
                     
-                    // রেন্ডার মার্কেটপ্লেস গ্রিড (ইউজার শপ এরিয়া)
                     const shop = document.getElementById('shop');
                     shop.innerHTML = `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:20px;">` + 
                     data.products.map(item => `
@@ -837,7 +826,6 @@
                     pBody.innerHTML = `<p style="color:#86868b; text-align:center;">কোনো স্টক নেই</p>`;
                 }
 
-                // ইনকামিং রিয়েল-টাইম ক্লায়েন্ট অর্ডার হ্যান্ডলার
                 const oBody = document.getElementById('oBody');
                 if(data.orders && data.orders.length > 0) {
                     oBody.innerHTML = data.orders.map(o => `
@@ -901,7 +889,6 @@
             }
         }
 
-        // ইনিশিয়াল কল এবং অটো-সিঙ্ক মেকানিজম (১৫ সেকেন্ড পর পর)
         loadData();
         setInterval(loadData, 15000);
     </script>
