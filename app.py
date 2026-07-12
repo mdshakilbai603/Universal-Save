@@ -2,7 +2,7 @@ import os
 import json
 import logging
 import requests
-from flask import Flask, request, jsonify, render_template, Response
+from flask import Flask, request, jsonify, render_template, Response, redirect, url_for
 from flask_cors import CORS
 import yt_dlp
 
@@ -13,24 +13,77 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# কুকিজ ফাইলের পাথ নির্ধারণ
-COOKIES_FILE = 'cookies.txt'
+TOKEN_FILE = 'youtube_oauth_cache.json'
+pending_oauth_data = {}
 
+def custom_oauth_hook(action, data):
+    global pending_oauth_data
+    if action == 'pre_auth':
+        pending_oauth_data = {
+            'code': data.get('user_code'),
+            'url': data.get('verification_url')
+        }
+
+# ১. চেক করা হবে ইউজার আগে লগইন করেছে কি না
 @app.route('/')
 def index():
+    if not os.path.exists(TOKEN_FILE):
+        # যদি লগইন টোকেন না থাকে, তবে সরাসরি লগইন পেজে পাঠিয়ে দেবে
+        return render_template('login.html')
     return render_template('index.html')
 
-@app.route('/api/data', methods=['GET'])
-def get_data():
-    return jsonify({"status": "active"})
+# ২. গুগলের ওওথ কোড জেনারেট করার রুট
+@app.route('/api/start-login', methods=['GET'])
+def start_login():
+    global pending_oauth_data
+    pending_oauth_data = {}
+    
+    ydl_opts = {
+        'extractor_args': {
+            'youtube': {
+                'oauth': True,
+                'oauth_cache': TOKEN_FILE
+            }
+        }
+    }
+    ydl_opts['extractor_args']['youtube']['oauth_hook'] = custom_oauth_hook
+    
+    try:
+        # এটি গুগলের কাছ থেকে কোডটি টেনে আনবে
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            try:
+                ydl.extract_info('https://www.youtube.com/watch?v=dQw4w9WgXcQ', download=False)
+            except Exception:
+                pass # কোড জেনারেট হয়ে গেলে এরর আসলেও সমস্যা নেই
+        
+        if pending_oauth_data and 'code' in pending_oauth_data:
+            return jsonify({
+                'success': True,
+                'google_code': pending_oauth_data['code'],
+                'redirect_url': pending_oauth_data['url']
+            })
+        return jsonify({'success': False, 'error': 'গুগল কোড জেনারেট করতে পারেনি। আবার চেষ্টা করুন।'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
+# ৩. লগইন সম্পন্ন হয়েছে কি না তা চেক করার রুট
+@app.route('/api/check-login-status', methods=['GET'])
+def check_login_status():
+    if os.path.exists(TOKEN_FILE):
+        return jsonify({'logged_in': True})
+    return jsonify({'logged_in': False})
+
+# ৪. মূল ভিডিও ফেচ করার রুট
 @app.route('/api/fetch', methods=['POST'])
 def fetch_video_data():
+    if not os.path.exists(TOKEN_FILE):
+        return jsonify({'error': 'দয়া করে আগে গুগল লগইন সম্পন্ন করুন।'}), 401
+
     data = request.get_json() or {}
     url_or_keyword = data.get('url')
     
     if not url_or_keyword:
-        return jsonify({'error': 'লিংক বা কিউওয়ার্ড প্রদান করা হয়নি'}), 400
+        return jsonify({'error': 'লিংক বা কিуওয়ার্ড প্রদান করা হয়নি'}), 400
 
     ydl_opts = {
         'nocheckcertificate': True,
@@ -38,19 +91,16 @@ def fetch_video_data():
         'no_warnings': False,
         'quiet': False,
         'format': 'best[ext=mp4]/best',
+        'extractor_args': {
+            'youtube': {
+                'oauth': True,
+                'oauth_cache': TOKEN_FILE
+            }
+        },
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         }
     }
-
-    # যদি ডিরেক্টরিতে cookies.txt ফাইলটি থাকে, তবে সেটি yt-dlp তে যুক্ত হবে
-    if os.path.exists(COOKIES_FILE):
-        ydl_opts['cookiefile'] = COOKIES_FILE
-        logger.info("====== USING COOKIES.TXT FILE FOR AUTHENTICATION ======")
-    else:
-        logger.warning("====== COOKIES.TXT NOT FOUND! RUNNING WITHOUT COOKIES ======")
 
     if not url_or_keyword.startswith(('http://', 'https://')):
         url_or_keyword = f"ytsearch1:{url_or_keyword}"
@@ -93,9 +143,7 @@ def fetch_video_data():
             })
 
     except Exception as e:
-        err_msg = str(e)
-        logger.error(f"Fetch error: {err_msg}")
-        return jsonify({'error': f"ব্যর্থ হয়েছে। কারণ: {err_msg}"}), 500
+        return jsonify({'error': f"ব্যর্থ হয়েছে। কারণ: {str(e)}"}), 500
 
 @app.route('/api/proxy_video')
 def proxy_video():
@@ -123,8 +171,11 @@ def proxy_video():
                     yield chunk
         return Response(generate(), status=r.status_code, headers=response_headers)
     except Exception as e:
-        logger.error(f"Proxy error: {e}")
         return "Error streaming video", 500
+
+@app.route('/api/data', methods=['GET'])
+def get_data():
+    return jsonify({"status": "active", "products": [], "orders": []})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)), debug=False)
