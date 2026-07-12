@@ -28,7 +28,7 @@ def fetch_video_data():
     if not url_or_keyword:
         return jsonify({'error': 'লিংক বা কিউওয়ার্ড প্রদান করা হয়নি'}), 400
 
-    # ক্লাউড সার্ভার ব্লক বাইপাস করার জন্য কঠোর রুলস সেটআপ
+    # Error code 152 এবং এজ-রেস্ট্রিকশন বাইপাস করার জন্য নতুন অপশন
     ydl_opts = {
         'nocheckcertificate': True,
         'ignoreerrors': False,
@@ -36,19 +36,17 @@ def fetch_video_data():
         'quiet': False,
         'format': 'best[ext=mp4]/best', 
         
-        # ইউটিউব ব্লক এড়ানোর জন্য মডার্ন ইমবেডেড অ্যান্ড্রয়েড ওটিটি (TV) ক্লায়েন্ট ব্যবহার
+        # ios এবং tvhtml5 ক্লায়েন্ট একসাথে ব্যবহার করলে Error 152 আসে না
         'extractor_args': {
             'youtube': {
-                'player_client': ['android_embedded', 'web_embedded', 'tvhtml5'],
+                'player_client': ['ios', 'tvhtml5'],
                 'player_skip': ['webpage', 'configs'],
             }
         },
-        # রিকোয়েস্ট হেডার মাস্কিং
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (ChromiumStyleAndroid) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Cache-Control': 'no-cache',
         }
     }
 
@@ -74,10 +72,9 @@ def fetch_video_data():
             raw_video_url = None
             formats = video_data.get('formats', [])
             
-            # ফেসবুক ও ইউটিউবের কম্বাইন্ড অডিও-ভিডিও ফিল্টারিং
             for f in reversed(formats):
                 if f.get('url') and f.get('acodec') != 'none' and f.get('vcodec') != 'none':
-                    if "manifest" not in f['url']: # m3u8 বা ড্যাশ ম্যানিফেস্ট এড়ানোর জন্য
+                    if "manifest" not in f['url']:
                         raw_video_url = f['url']
                         break
             
@@ -104,7 +101,6 @@ def fetch_video_data():
 
     except Exception as e:
         logger.error(f"Fetch error: {str(e)}")
-        # এরর মেসেজটি ফ্রন্টএন্ডে পুশ করা হচ্ছে যেন সঠিক ট্রাবলশুট করা যায়
         return jsonify({'error': f"ব্যর্থ হয়েছে। কারণ: {str(e)}"}), 500
 
 @app.route('/api/proxy_video')
