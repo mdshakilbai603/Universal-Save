@@ -28,25 +28,27 @@ def fetch_video_data():
     if not url_or_keyword:
         return jsonify({'error': 'লিংক বা কিউওয়ার্ড প্রদান করা হয়নি'}), 400
 
-    # ইউটিউবের বট সনাক্তকরণ এবং ফেসবুকের কম্বাইন্ড ফরম্যাট একসাথে হ্যান্ডেল করার অপশন
+    # ক্লাউড সার্ভার ব্লক বাইপাস করার জন্য কঠোর রুলস সেটআপ
     ydl_opts = {
         'nocheckcertificate': True,
-        'ignoreerrors': True,
-        'no_warnings': True,
-        'quiet': True,
-        'format': 'best[ext=mp4]/best', # ফেসবুক ও অন্যান্যদের জন্য কমপ্লিট অডিও-ভিডিও ট্র্যাক
+        'ignoreerrors': False,
+        'no_warnings': False,
+        'quiet': False,
+        'format': 'best[ext=mp4]/best', 
         
-        # ইউটিউব বট প্রোটেকশন বাইপাস করার জন্য আইওএস ও অ্যান্ড্রয়েড ক্লায়েন্ট ফোর্স করা হলো
+        # ইউটিউব ব্লক এড়ানোর জন্য মডার্ন ইমবেডেড অ্যান্ড্রয়েড ওটিটি (TV) ক্লায়েন্ট ব্যবহার
         'extractor_args': {
             'youtube': {
-                'player_client': ['ios', 'android', 'web_embedded'],
-                'skip': ['webpage', 'authcheck']
+                'player_client': ['android_embedded', 'web_embedded', 'tvhtml5'],
+                'player_skip': ['webpage', 'configs'],
             }
         },
+        # রিকোয়েস্ট হেডার মাস্কিং
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
+            'User-Agent': 'Mozilla/5.0 (ChromiumStyleAndroid) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'no-cache',
         }
     }
 
@@ -58,7 +60,7 @@ def fetch_video_data():
             info = ydl.extract_info(url_or_keyword, download=False)
             
             if not info:
-                return jsonify({'error': 'কোনো তথ্য পাওয়া যায়নি বা সাইটটি সাময়িকভাবে ব্লক করেছে'}), 404
+                return jsonify({'error': 'কোনো তথ্য পাওয়া যায়নি। সাইটটি সাময়িকভাবে ব্লক করেছে।'}), 404
             
             if 'entries' in info:
                 entries = list(info['entries'])
@@ -72,11 +74,12 @@ def fetch_video_data():
             raw_video_url = None
             formats = video_data.get('formats', [])
             
-            # ফেসবুক/ইনস্টাগ্রাম কম্বাইন্ড অডিও-ভিডিও ট্র্যাক ফিল্টারিং
+            # ফেসবুক ও ইউটিউবের কম্বাইন্ড অডিও-ভিডিও ফিল্টারিং
             for f in reversed(formats):
                 if f.get('url') and f.get('acodec') != 'none' and f.get('vcodec') != 'none':
-                    raw_video_url = f['url']
-                    break
+                    if "manifest" not in f['url']: # m3u8 বা ড্যাশ ম্যানিফেস্ট এড়ানোর জন্য
+                        raw_video_url = f['url']
+                        break
             
             if not raw_video_url:
                 raw_video_url = video_data.get('url', '')
@@ -101,7 +104,8 @@ def fetch_video_data():
 
     except Exception as e:
         logger.error(f"Fetch error: {str(e)}")
-        return jsonify({'error': f"তথ্য খোঁজার প্রসেসটি ব্যর্থ হয়েছে। এরর: {str(e)}"}), 500
+        # এরর মেসেজটি ফ্রন্টএন্ডে পুশ করা হচ্ছে যেন সঠিক ট্রাবলশুট করা যায়
+        return jsonify({'error': f"ব্যর্থ হয়েছে। কারণ: {str(e)}"}), 500
 
 @app.route('/api/proxy_video')
 def proxy_video():
