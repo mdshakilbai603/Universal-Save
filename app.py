@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 def index():
     return render_template('index.html')
 
-# জাভাস্ক্রিপ্টের ৪0৪ এরর এড়াতে এই ডামি বা গেট ডাটা রাউটটি সচল রাখা হলো
 @app.route('/api/data', methods=['GET'])
 def get_data():
     return jsonify({"status": "active"})
@@ -29,12 +28,13 @@ def fetch_video_data():
     if not url_or_keyword:
         return jsonify({'error': 'লিংক বা কিউওয়ার্ড প্রদান করা হয়নি'}), 400
 
+    # অডিও এবং ভিডিও একসাথে বিল্ট-ইন আছে এমন একক ফরম্যাট ফোর্স করা হয়েছে (যেমন: format 18 বা mp4)
     ydl_opts = {
         'nocheckcertificate': True,
         'ignoreerrors': True,
         'no_warnings': True,
         'quiet': True,
-        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best', # স্ট্যান্ডার্ড mp4 ফরম্যাট ফোর্স করা হয়েছে
+        'format': 'best[ext=mp4]/best', # আলাদা ট্র্যাক বাদ দিয়ে অডিওসহ বেস্ট কম্বাইন্ড ফাইল খুঁজবে
     }
 
     if not url_or_keyword.startswith(('http://', 'https://')):
@@ -56,21 +56,25 @@ def fetch_video_data():
             else:
                 video_data = info
 
-            # ফেসবুক বা অন্য সাইটের ডিরেক্ট ভিডিওর সোর্স ইউআরএল
-            raw_video_url = video_data.get('url', '')
+            raw_video_url = None
             
+            # প্রথমে অল-ইন-ওয়ান কম্বাইন্ড ফরম্যাটগুলোর ভেতর থেকে লিংক খোঁজার চেষ্টা করবে
+            formats = video_data.get('formats', [])
+            for f in reversed(formats):
+                # acodec এবং vcodec দুটোই বিদ্যমান থাকলে তা অডিও-ভিডিও যুক্ত কমপ্লিট ফাইল নিশ্চিত করে
+                if f.get('url') and f.get('acodec') != 'none' and f.get('vcodec') != 'none':
+                    raw_video_url = f['url']
+                    break
+            
+            # যদি লুপে না পায়, তবে সাধারণ বেস্ট ইউআরএলটি নেবে
             if not raw_video_url:
-                # যদি নির্দিষ্ট ফরম্যাটে লিংক না পাওয়া যায় তবে ব্যাকআপ লিংক চেক করবে
-                formats = video_data.get('formats', [])
-                for f in reversed(formats):
-                    if f.get('url'):
-                        raw_video_url = f['url']
-                        break
+                raw_video_url = video_data.get('url', '')
 
-            # প্রক্সি ইউআরএল তৈরি
-            proxied_video_url = f"/api/proxy_video?stream_url={requests.utils.quote(raw_video_url)}" if raw_video_url else ""
+            if not raw_video_url:
+                return jsonify({'error': 'ভিডিওর প্লেব্যাক লিংক পাওয়া যায়নি'}), 404
 
-            # ফ্রন্টএন্ডে দুরকম নামেই পাঠানো হলো যাতে কোনোভাবেই 'undefined' না হয়
+            proxied_video_url = f"/api/proxy_video?stream_url={requests.utils.quote(raw_video_url)}"
+
             response_data = {
                 'success': True,
                 'title': video_data.get('title', 'Unknown Title'),
@@ -78,7 +82,7 @@ def fetch_video_data():
                 'duration': video_data.get('duration', 0),
                 'uploader': video_data.get('uploader', 'Unknown'),
                 'video_url': proxied_video_url,
-                'url': proxied_video_url, # ওল্ড জাভাস্ক্রিপ্ট কোডের ব্যাকআপের জন্য
+                'url': proxied_video_url,
                 'filename': video_data.get('title', 'video') + '.mp4'
             }
             
@@ -98,12 +102,11 @@ def proxy_video():
         req_headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': '*/*',
-            'Range': request.headers.get('Range', '') # ভিডিওর টেনে টুনে দেখার (Seeking) জন্য রেঞ্জ সাপোর্ট
+            'Range': request.headers.get('Range', '')
         }
         
         r = requests.get(stream_url, headers=req_headers, stream=True, timeout=20)
         
-        # প্রক্সি হেডার তৈরি
         response_headers = {
             'Content-Type': r.headers.get('Content-Type', 'video/mp4'),
             'Content-Length': r.headers.get('Content-Length', ''),
@@ -113,7 +116,7 @@ def proxy_video():
             response_headers['Content-Range'] = r.headers.get('Content-Range')
 
         def generate():
-            for chunk in r.iter_content(chunk_size=256*1024): # স্মুথ প্লেব্যাকের জন্য ২৫৬KB চাঙ্ক
+            for chunk in r.iter_content(chunk_size=256*1024):
                 if chunk:
                     yield chunk
 
