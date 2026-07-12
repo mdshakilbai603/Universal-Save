@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import tempfile
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import yt_dlp
@@ -12,24 +13,25 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
-if not os.path.exists(UPLOAD_FOLDER):
-    try:
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    except Exception as e:
-        logger.error(f"Cannot create uploads folder: {e}")
+# রেন্ডার বা ডকার কন্টেনারের জন্য নিরাপদ রাইট-পারমিশন ডিরেক্টরি (/tmp) ব্যবহার করা হয়েছে
+BASE_TMP_DIR = tempfile.gettempdir()
+UPLOAD_FOLDER = os.path.join(BASE_TMP_DIR, 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-DB_FILE = os.path.join(os.getcwd(), 'database.json')
+DB_FILE = os.path.join(BASE_TMP_DIR, 'database.json')
 
+# ১. ডেটাবেজ ফাইল পড়ার নিরাপদ ফাংশন
 def read_db():
     if not os.path.exists(DB_FILE) or os.path.getsize(DB_FILE) == 0:
         return {}
     try:
         with open(DB_FILE, 'r', encoding='utf-8') as f:
             return json.load(f)
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error reading DB: {e}")
         return {}
 
+# ২. ডেটাবেজ ফাইলে লেখার নিরাপদ ফাংশন
 def write_db(data):
     try:
         with open(DB_FILE, 'w', encoding='utf-8') as f:
@@ -37,6 +39,7 @@ def write_db(data):
     except Exception as e:
         logger.error(f"Error writing to DB: {str(e)}")
 
+# ৩. প্রোগ্রেস হুক ফাংশন
 def my_hook(d):
     try:
         if d.get('status') == 'downloading':
@@ -72,7 +75,7 @@ def download_video():
     if not url:
         return jsonify({'error': 'URL প্রদান করা হয়নি'}), 400
 
-    # অতিরিক্ত উইন্ডোজ/লিনাক্স সামঞ্জস্যপূর্ণ এনকোডিং প্যারামিটার এবং স্ট্রিম ফিক্স সহ কনফিগ
+    # yt-dlp এর জন্য লিনাক্স সার্ভার ফ্রেন্ডলি ও নিরাপদ কনফিগারেশন
     ydl_opts = {
         'format': 'best',
         'outtmpl': os.path.join(UPLOAD_FOLDER, '%(title)s.%(ext)s'),
@@ -84,13 +87,13 @@ def download_video():
         'prefer_insecure': True
     }
 
+    # cookies.txt কারেন্ট ডিরেক্টরিতে রিড-অনলি হিসেবে চেক করা হবে
     cookie_path = os.path.join(os.getcwd(), 'cookies.txt')
     if os.path.exists(cookie_path) and os.path.getsize(cookie_path) > 0:
         ydl_opts['cookiefile'] = cookie_path
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            # পাইপলাইন এক্সট্রাকশন সেফ করা
             info = ydl.extract_info(url, download=True)
             if not info:
                 return jsonify({'error': 'ভিডিওর তথ্য পাওয়া যায়নি বা লিংকটি সাপোর্ট করছে না'}), 400
@@ -98,6 +101,7 @@ def download_video():
             filename = ydl.prepare_filename(info)
             basename = os.path.basename(filename)
             
+            # ডেটাবেজে ডাটা সংরক্ষণ
             db = read_db()
             video_id = info.get('id', 'unknown')
             db[video_id] = {
@@ -115,10 +119,12 @@ def download_video():
             
     except Exception as e:
         logger.error(f"Download error: {str(e)}")
-        return jsonify({'error': f"ডাউনলোড প্রসেস করতে সমস্যা হয়েছে! এরর ডিটেইলস: {str(e)}"}), 500
+        # ফ্রন্টএন্ডে মূল এরর মেসেজটি পাস করা হচ্ছে যাতে ডিবাগ করা সহজ হয়
+        return jsonify({'error': f"ডাউনলোড প্রসেস করতে সমস্যা হয়েছে! ডিটেইলস: {str(e)}"}), 500
 
 @app.route('/uploads/<path:filename>')
 def download_file(filename):
+    # /tmp/uploads ডিরেক্টরি থেকে ফাইল ইউজারের ব্রাউজারে পাঠানো হবে
     return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=True)
 
 if __name__ == '__main__':
