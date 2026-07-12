@@ -1,27 +1,30 @@
-# ১. অফিশিয়াল লাইটওয়েট পাইথন ইমেজ ব্যবহার করা হচ্ছে
+# ১. একটি উপযুক্ত বেস ইমেজ ব্যবহার করা (যেমন পাইথনের জন্য)
 FROM python:3.10-slim
 
-# ২. yt-dlp এর জন্য সিস্টেমে ffmpeg এবং অন্যান্য প্রয়োজনীয় টুলস ইনস্টল করা
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# ২. সিস্টেমের প্রয়োজনীয় টুলস এবং ffmpeg ইনস্টল করা (আপনার লগ অনুযায়ী)
+RUN apt-get update && apt-get install -y \
     ffmpeg \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# ৩. কন্টেইনারের ভেতরে ওয়ার্কিং ডিরেক্টরি সেট করা
+# ৩. ওয়ার্কিং ডিরেক্টরি সেট করা
 WORKDIR /app
 
-# ৪. ডিপেনডেন্সি ফাইল কপি এবং ইনস্টল করা
+# ৪. ডিপেন্ডেন্সি ফাইল কপি করা
 COPY requirements.txt .
+
+# ৫. পাইথন প্যাকেজগুলো ইনস্টল করা
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ৫. প্রজেক্টের বাকি সব ফাইল কন্টেইনারে কপি করা
+# ৬. ইমেজ আপলোডের জন্য uploads ফোল্ডার এবং ডেটাবেজের জন্য database.json তৈরি করা
+# (এখানে -px পরিবর্তন করে -p করা হয়েছে)
+RUN mkdir -p uploads && touch database.json && touch cookies.txt
+
+# ৭. বাকি সব সোর্স ফাইল কপি করা
 COPY . .
 
-# ৬. ইমেজ আপলোডের জন্য uploads ফোল্ডার এবং ডেটাবেজের জন্য database.json তৈরি করা
-RUN mkdir -px uploads && touch database.json && touch cookies.txt
-
-# ৭. ফ্ল্যাস্ক অ্যাপ্লিকেশনের পোর্ট এক্সপোজ করা
+# ৮. ফ্ল্যাস্ক অ্যাপ্লিকেশনের পোর্ট এক্সপোজ করা
 EXPOSE 5000
 
-# ৮. অ্যাপ্লিকেশন রান করার কমান্ড
+# ৯. অ্যাপ্লিকেশন রান করার কমান্ড
 CMD ["python", "app.py"]
