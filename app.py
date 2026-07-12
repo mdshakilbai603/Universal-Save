@@ -28,7 +28,7 @@ def fetch_video_data():
     if not url_or_keyword:
         return jsonify({'error': 'লিংক বা কিউওয়ার্ড প্রদান করা হয়নি'}), 400
 
-    # Error code 152 এবং এজ-রেস্ট্রিকশন বাইপাস করার জন্য নতুন অপশন
+    # ইউটিউব বট প্রোটেকশন স্থায়ীভাবে বাইপাস করার জন্য OAuth সক্রিয় করা হলো
     ydl_opts = {
         'nocheckcertificate': True,
         'ignoreerrors': False,
@@ -36,11 +36,12 @@ def fetch_video_data():
         'quiet': False,
         'format': 'best[ext=mp4]/best', 
         
-        # ios এবং tvhtml5 ক্লায়েন্ট একসাথে ব্যবহার করলে Error 152 আসে না
         'extractor_args': {
             'youtube': {
+                # এখানে ওঅথ (oauth) চালু করা হলো, যা সার্ভার ব্লকিং পুরোপুরি দূর করবে
                 'player_client': ['ios', 'tvhtml5'],
                 'player_skip': ['webpage', 'configs'],
+                'oauth': True 
             }
         },
         'http_headers': {
