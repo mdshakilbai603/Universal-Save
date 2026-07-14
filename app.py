@@ -1,6 +1,8 @@
 import os
 import json
 import logging
+import time
+import datetime
 import requests
 from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
@@ -55,12 +57,11 @@ def add_product():
         price = request.form.get('price')
         image_file = request.files.get('image')
 
-        if not name || !price || !image_file:
+        # পাইথনে '||' এর জায়গায় সঠিক 'or' ব্যবহার করা হয়েছে
+        if not name or not price or not image_file:
             return jsonify({'success': False, 'error': 'সব তথ্য দেওয়া হয়নি'}), 400
 
         filename = secure_filename(image_file.filename)
-        # ইউনিক নাম দেওয়ার জন্য টাইমস্ট্যাম্প যোগ করা যেতে পারে
-        import time
         filename = f"{int(time.time())}_{filename}"
         image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         image_file.save(image_path)
@@ -83,7 +84,6 @@ def add_product():
 def delete_product(prod_id):
     try:
         db = load_db()
-        # ইমেজ ফাইল ডিলিট করা (ঐচ্ছিক)
         for p in db['products']:
             if p['id'] == prod_id:
                 img_path = p['img'].lstrip('/')
@@ -104,10 +104,9 @@ def place_order():
         item = data.get('item')
         phone = data.get('phone')
 
-        if not item || !phone:
+        if not item or not phone:
             return jsonify({'success': False, 'error': 'তথ্য অসম্পূর্ণ'}), 400
 
-        import datetime
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         db = load_db()
