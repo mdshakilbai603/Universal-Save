@@ -4,6 +4,7 @@ import logging
 import requests
 from flask import Flask, request, jsonify, render_template, Response
 from flask_cors import CORS
+from werkzeug.utils import secure_filename
 import yt_dlp
 
 app = Flask(__name__, template_folder='.')
@@ -13,13 +14,116 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ডেটা এবং ইমেজ সেভ করার কনফিগারেশন
+DATA_FILE = 'marketplace_data.json'
+UPLOAD_FOLDER = 'static/uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# আপলোড ফোল্ডার না থাকলে তৈরি করা
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# ডেটাবেস (JSON ফাইল) লোড ও সেভ করার ফাংশন
+def load_db():
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            return {"products": [], "orders": []}
+    return {"products": [], "orders": []}
+
+def save_db(data):
+    with open(DATA_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
+# --- মার্কেটপ্লেস এপিআই রুটস ---
+
 @app.route('/api/data', methods=['GET'])
 def get_data():
-    return jsonify({"status": "active", "products": [], "orders": []})
+    db = load_db()
+    return jsonify(db)
+
+@app.route('/api/add-product', methods=['POST'])
+def add_product():
+    try:
+        name = request.form.get('name')
+        price = request.form.get('price')
+        image_file = request.files.get('image')
+
+        if not name || !price || !image_file:
+            return jsonify({'success': False, 'error': 'সব তথ্য দেওয়া হয়নি'}), 400
+
+        filename = secure_filename(image_file.filename)
+        # ইউনিক নাম দেওয়ার জন্য টাইমস্ট্যাম্প যোগ করা যেতে পারে
+        import time
+        filename = f"{int(time.time())}_{filename}"
+        image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        image_file.save(image_path)
+
+        db = load_db()
+        new_product = {
+            "id": int(time.time()),
+            "name": name,
+            "price": price,
+            "img": f"/{image_path}"
+        }
+        db['products'].append(new_product)
+        save_db(db)
+
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/delete-product/<int:prod_id>', methods=['DELETE'])
+def delete_product(prod_id):
+    try:
+        db = load_db()
+        # ইমেজ ফাইল ডিলিট করা (ঐচ্ছিক)
+        for p in db['products']:
+            if p['id'] == prod_id:
+                img_path = p['img'].lstrip('/')
+                if os.path.exists(img_path):
+                    os.remove(img_path)
+                break
+        
+        db['products'] = [p for p in db['products'] if p['id'] != prod_id]
+        save_db(db)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/place-order', methods=['POST'])
+def place_order():
+    try:
+        data = request.get_json() or {}
+        item = data.get('item')
+        phone = data.get('phone')
+
+        if not item || !phone:
+            return jsonify({'success': False, 'error': 'তথ্য অসম্পূর্ণ'}), 400
+
+        import datetime
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        db = load_db()
+        new_order = {
+            "item": item,
+            "phone": phone,
+            "timestamp": timestamp
+        }
+        db['orders'].append(new_order)
+        save_db(db)
+
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# --- ভিডিও ডাউনলোডার রুটস ---
 
 @app.route('/api/fetch', methods=['POST'])
 def fetch_video_data():
@@ -29,7 +133,6 @@ def fetch_video_data():
     if not url_or_keyword:
         return jsonify({'error': 'লিংক বা কিউওয়ার্ড প্রদান করা হয়নি'}), 400
 
-    # একদম সাধারণ কনফিগারেশন, কোনো ওওথ বা লগইন ঝামেলা রাখা হয়নি
     ydl_opts = {
         'nocheckcertificate': True,
         'ignoreerrors': False,
